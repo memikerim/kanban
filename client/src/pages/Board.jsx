@@ -35,9 +35,18 @@ export default function Board() {
     }
   }, [user, fetchUser]);
 
+  const getRoleDisplayName = (role) => {
+    if (!role) return 'KULLANICI';
+    const r = role.toLowerCase();
+    if (r === 'owner') return 'SİSTEM YÖNETİCİSİ';
+    if (r === 'admin') return 'ADMİN';
+    return 'KULLANICI';
+  };
+
   const currentUser = {
     name: user?.name || 'Kullanıcı',
-    role: user?.role ? user.role.toUpperCase() : 'USER'
+    role: getRoleDisplayName(user?.role),
+    rawRole: user?.role ? user.role.toLowerCase() : 'user'
   };
 
   const showToast = (message, type = 'error') => {
@@ -368,7 +377,7 @@ export default function Board() {
                 Yetki: {currentUser.role}
               </span>
             </div>
-            {currentUser.role === 'OWNER' && (
+            {currentUser.rawRole === 'owner' && (
               <button 
                 onClick={handleOpenUsersModal} 
                 style={{ padding: '8px 16px', background: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
