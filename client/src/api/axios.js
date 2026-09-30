@@ -1,7 +1,9 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: '/api', // Hem lokalde hem production'da çalışır
+  // Electron (masaüstü) uygulamasının ve lokal geliştirme ortamının
+  // doğrudan canlı sunucuya bağlanması için tam URL kullanıyoruz.
+  baseURL: 'https://kanban-t778.onrender.com/api', 
 });
 
 // ZORUNLU GÜVENLİK (INTERCEPTOR): Her API isteğinden önce araya gir ve token'ı ekle
