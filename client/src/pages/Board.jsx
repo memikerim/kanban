@@ -241,10 +241,14 @@ export default function Board() {
   const handleOpenUsersModal = async () => {
     try {
       const response = await api.get('/users');
-      setUsersList(response.data);
-      setShowUsersModal(true);
+      if (Array.isArray(response.data)) {
+        setUsersList(response.data);
+        setShowUsersModal(true);
+      } else {
+        throw new Error("Geçersiz veri formatı. Sunucu güncelleniyor olabilir, lütfen 1-2 dakika bekleyip tekrar deneyin.");
+      }
     } catch (error) {
-      showToast(error.response?.data?.error || "Kullanıcılar yüklenemedi", "error");
+      showToast(error.response?.data?.error || error.message || "Kullanıcılar yüklenemedi", "error");
     }
   };
 
@@ -253,7 +257,7 @@ export default function Board() {
       await api.put(`/users/${userId}/role`, { role: newRole });
       showToast("Yetki başarıyla güncellendi.", "success");
       const response = await api.get('/users');
-      setUsersList(response.data);
+      if (Array.isArray(response.data)) setUsersList(response.data);
     } catch (error) {
       showToast(error.response?.data?.error || "Yetki güncellenemedi.", "error");
     }
@@ -265,7 +269,7 @@ export default function Board() {
       await api.delete(`/users/${userId}`);
       showToast("Kullanıcı silindi.", "success");
       const response = await api.get('/users');
-      setUsersList(response.data);
+      if (Array.isArray(response.data)) setUsersList(response.data);
     } catch (error) {
       showToast(error.response?.data?.error || "Kullanıcı silinemedi.", "error");
     }
