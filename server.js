@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 require('dotenv').config();
 
 // Güvenlik paketlerini içeri aktarma
@@ -29,7 +30,7 @@ const projectRoutes = require('./routes/projectRoutes');
 const taskRoutes = require('./routes/taskRoutes');
 const authRoutes = require('./routes/authRoutes');
 
-// Rotaları Kullanma
+// API Rotaları
 app.use('/api/projects', projectRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/auth', authRoutes);
@@ -37,6 +38,14 @@ app.use('/api/auth', authRoutes);
 // Sağlık Kontrolü (Test Rotası)
 app.get('/api/health', (req, res) => {
     res.json({ status: "success", message: "Trello Clone API tıkır tıkır çalışıyor 🚀" });
+});
+
+// Production'da React client'ı sun
+app.use(express.static(path.join(__dirname, 'client', 'dist')));
+
+// API dışındaki tüm istekleri React'e yönlendir (SPA catch-all)
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'client', 'dist', 'index.html'));
 });
 
 // Sunucuyu Başlatma
