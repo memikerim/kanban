@@ -6,7 +6,7 @@ const adminMiddleware = require('../middleware/adminMiddleware');
 
 router.get('/', verifyToken, getProjects);
 router.post('/', verifyToken, createProject);
-router.delete('/:id', verifyToken, adminMiddleware, deleteProject);
+router.delete('/:id', verifyToken, deleteProject);
 router.get('/:id/board', verifyToken, getProjectBoard);
 
 // YENİ: Projenin loglarını çeken rota
