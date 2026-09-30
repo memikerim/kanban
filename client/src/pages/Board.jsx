@@ -20,6 +20,9 @@ export default function Board() {
   const [toastMessage, setToastMessage] = useState(null); 
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, type: '', id: null, columnId: null });
 
+  const [usersList, setUsersList] = useState([]);
+  const [showUsersModal, setShowUsersModal] = useState(false);
+
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
   const fetchUser = useAuthStore((state) => state.fetchUser);
@@ -226,6 +229,39 @@ export default function Board() {
     }
   };
 
+  const handleOpenUsersModal = async () => {
+    try {
+      const response = await api.get('/users');
+      setUsersList(response.data);
+      setShowUsersModal(true);
+    } catch (error) {
+      showToast(error.response?.data?.error || "Kullanıcılar yüklenemedi", "error");
+    }
+  };
+
+  const handleRoleChange = async (userId, newRole) => {
+    try {
+      await api.put(`/users/${userId}/role`, { role: newRole });
+      showToast("Yetki başarıyla güncellendi.", "success");
+      const response = await api.get('/users');
+      setUsersList(response.data);
+    } catch (error) {
+      showToast(error.response?.data?.error || "Yetki güncellenemedi.", "error");
+    }
+  };
+
+  const handleDeleteUser = async (userId) => {
+    if (!window.confirm("Bu kullanıcıyı kalıcı olarak silmek istediğinize emin misiniz?")) return;
+    try {
+      await api.delete(`/users/${userId}`);
+      showToast("Kullanıcı silindi.", "success");
+      const response = await api.get('/users');
+      setUsersList(response.data);
+    } catch (error) {
+      showToast(error.response?.data?.error || "Kullanıcı silinemedi.", "error");
+    }
+  };
+
   return (
     <div className="app-container" style={{ position: 'relative' }}>
       
@@ -332,6 +368,14 @@ export default function Board() {
                 Yetki: {currentUser.role}
               </span>
             </div>
+            {currentUser.role === 'OWNER' && (
+              <button 
+                onClick={handleOpenUsersModal} 
+                style={{ padding: '8px 16px', background: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+              >
+                👥 Kullanıcı Yönetimi
+              </button>
+            )}
             <button onClick={handleLogout} className="logout-btn">Çıkış Yap</button>
           </div>
         </header>
@@ -532,6 +576,69 @@ export default function Board() {
                     </small>
                   </div>
                 ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+      {/* KULLANICI YÖNETİMİ MODALI (SADECE OWNER) */}
+      {showUsersModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+          backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
+        }}>
+          <div style={{
+            background: '#f4f5f7', padding: '24px', borderRadius: '8px', width: '600px', maxHeight: '80vh', display: 'flex', flexDirection: 'column', gap: '15px'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ margin: 0, color: '#172b4d' }}>👥 Kullanıcı Yönetimi</h3>
+              <button onClick={() => setShowUsersModal(false)} style={{ background: 'transparent', border: 'none', fontSize: '18px', cursor: 'pointer', color: '#5e6c84' }}>✖</button>
+            </div>
+            
+            <div style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px', paddingRight: '5px' }}>
+              {usersList.length === 0 ? (
+                <p style={{ color: '#5e6c84', textAlign: 'center' }}>Kullanıcı bulunamadı.</p>
+              ) : (
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', backgroundColor: '#fff', borderRadius: '4px', overflow: 'hidden' }}>
+                  <thead style={{ backgroundColor: '#e4f0f6', color: '#172b4d' }}>
+                    <tr>
+                      <th style={{ padding: '10px' }}>İsim</th>
+                      <th style={{ padding: '10px' }}>E-posta</th>
+                      <th style={{ padding: '10px' }}>Yetki</th>
+                      <th style={{ padding: '10px' }}>İşlemler</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {usersList.map(u => (
+                      <tr key={u.id} style={{ borderBottom: '1px solid #ebecf0' }}>
+                        <td style={{ padding: '10px' }}>{u.name}</td>
+                        <td style={{ padding: '10px' }}>{u.email}</td>
+                        <td style={{ padding: '10px' }}>
+                          <select 
+                            value={u.role}
+                            onChange={(e) => handleRoleChange(u.id, e.target.value)}
+                            disabled={u.role === 'owner'}
+                            style={{ padding: '5px', borderRadius: '4px', border: '1px solid #ccc' }}
+                          >
+                            <option value="user">User</option>
+                            <option value="admin">Admin</option>
+                            {u.role === 'owner' && <option value="owner">Owner</option>}
+                          </select>
+                        </td>
+                        <td style={{ padding: '10px' }}>
+                          {u.role !== 'owner' && (
+                            <button 
+                              onClick={() => handleDeleteUser(u.id)}
+                              style={{ background: '#ff5630', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '4px', cursor: 'pointer' }}
+                            >
+                              Sil
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               )}
             </div>
           </div>

@@ -53,10 +53,11 @@ const deleteProject = async (req, res) => {
         const project = await prisma.project.findUnique({ where: { id: parseInt(id) } });
         if (!project) return res.status(404).json({ error: "Proje bulunamadı." });
 
-        const isAdmin = req.user.role && req.user.role.toLowerCase() === 'admin';
+        const role = req.user.role ? req.user.role.toLowerCase() : 'user';
+        const isSuperUser = role === 'admin' || role === 'owner';
         const isOwner = parseInt(project.userId) === parseInt(req.user.userId);
 
-        if (!isAdmin && !isOwner) {
+        if (!isSuperUser && !isOwner) {
             return res.status(403).json({ error: "Sadece kendi oluşturduğunuz projeleri silebilirsiniz!" });
         }
 
