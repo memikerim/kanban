@@ -42,6 +42,16 @@ export default function Board() {
     setTimeout(() => setToastMessage(null), 4000); 
   };
 
+  const fetchBoardData = async () => {
+    if (!currentProjectId) return;
+    try {
+      const response = await api.get(`/projects/${currentProjectId}/board`);
+      setColumns(response.data);
+    } catch (error) {
+      console.error('Pano verileri yüklenemedi:', error);
+    }
+  };
+
   useEffect(() => {
     const getInitialProjects = async () => {
       try {
@@ -55,17 +65,6 @@ export default function Board() {
   }, []);
 
   useEffect(() => {
-    if (!currentProjectId) return;
-
-    const fetchBoardData = async () => {
-      try {
-        const response = await api.get(`/projects/${currentProjectId}/board`);
-        setColumns(response.data);
-      } catch (error) {
-        console.error('Pano verileri yüklenemedi:', error);
-      }
-    };
-
     fetchBoardData();
   }, [currentProjectId]);
 
@@ -136,23 +135,14 @@ export default function Board() {
     if (!text || text.trim() === '') return;
 
     try {
-      const response = await api.post('/tasks', {
+      await api.post('/tasks', {
         title: text,
         columnId: parseInt(columnId),
         projectId: currentProjectId
       });
 
-      const newTask = response.data; 
-
-      const newColumns = columns.map(col => {
-        if (col.id === columnId) {
-          return { ...col, tasks: [...col.tasks, newTask] };
-        }
-        return col;
-      });
-      
-      setColumns(newColumns);
       setNewTaskText(prev => ({ ...prev, [columnId]: '' }));
+      await fetchBoardData();
     } catch (error) {
       console.error('Görev eklenemedi:', error);
     }
@@ -161,27 +151,15 @@ export default function Board() {
   const handleUpdateTask = async () => {
     if (!editingTask) return;
     try {
-      const response = await api.put(`/tasks/${editingTask.id}`, {
+      await api.put(`/tasks/${editingTask.id}`, {
         title: editingTask.title,
         description: editingTask.description,
         color: editingTask.color,
         dueDate: editingTask.dueDate ? editingTask.dueDate : null 
       });
 
-      const updatedTask = response.data;
-
-      const newColumns = columns.map(col => {
-        if (col.id === editingTask.columnId) {
-          return {
-            ...col,
-            tasks: col.tasks.map(t => t.id === updatedTask.id ? { ...t, ...updatedTask } : t)
-          };
-        }
-        return col;
-      });
-
-      setColumns(newColumns);
       setEditingTask(null);
+      await fetchBoardData();
     } catch (error) {
       showToast("Görev güncellenemedi.", "error");
     }
@@ -230,8 +208,10 @@ export default function Board() {
 
     try {
       await api.put('/tasks/reorder', { updatedTasks });
+      await fetchBoardData();
     } catch (error) {
       console.error('Sıralama güncellenirken hata oluştu:', error);
+      await fetchBoardData();
     }
   };
 
