@@ -1,0 +1,43 @@
+# Bağımlılıklar
+node_modules/
+
+# Ortam değişkenleri (GİZLİ BİLGİLER)
+.env
+.env.local
+.env.production
+
+# Prisma
+prisma/migrations/
+
+# Client build çıktıları
+client/dist/
+client/release/
+
+# Electron
+*.exe
+*.dmg
+*.AppImage
+*.snap
+
+# IDE ve editör dosyaları
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS dosyaları
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Log dosyaları
+*.log
+npm-debug.log*
+
+# Agent/AI yapılandırmaları
+.agents/
+.claude/
+.cursor/
+.devin/
+.gemini/

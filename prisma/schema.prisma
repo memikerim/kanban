@@ -1,0 +1,76 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           Int           @id @default(autoincrement())
+  name         String
+  email        String        @unique
+  password     String
+  role         String        @default("user") // Varsayılan olarak herkes 'user' olacak
+  projects     Project[]
+  
+  // --- Yeni Eklenen İlişkiler ---
+  tasks        Task[]        // Kullanıcının oluşturduğu görevler
+  activityLogs ActivityLog[] // Kullanıcının yaptığı aktiviteler
+}
+
+model Project {
+  id           Int           @id @default(autoincrement())
+  name         String
+  userId       Int
+  user         User          @relation(fields: [userId], references: [id])
+  tasks        Task[] 
+  columns      Column[]
+  
+  // --- Yeni Eklenen İlişki ---
+  activityLogs ActivityLog[] // Projeye ait son hareketler (Log kayıtları)
+}
+
+model Column {
+  id        Int      @id @default(autoincrement())
+  title     String   // "Yapılacaklar", "Devam Edenler" vb.
+  order     Int      // Sütunların yan yana diziliş sırası
+  projectId Int
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks     Task[]
+}
+
+model Task {
+  id          Int       @id @default(autoincrement())
+  title       String
+  description String?
+  
+  // Detay Alanları
+  dueDate     DateTime? // Son tarih (opsiyonel)
+  color       String?   // Etiket rengi (opsiyonel)
+
+  status      String    @default("todo") 
+  projectId   Int
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  // Sürükle-Bırak için Eklenenler
+  order       Int       @default(0)      // Görevin sütun içindeki dikey sırası
+  columnId    Int?                       // Hangi sütuna ait olduğu
+  column      Column?   @relation(fields: [columnId], references: [id], onDelete: Cascade)
+
+  // --- Yeni Eklenen: Görevi Kimin Oluşturduğu ---
+  userId      Int?      
+  user        User?     @relation(fields: [userId], references: [id])
+}
+
+// --- YENİ: Projedeki Son Değişiklikler (Hareket Dökümü) Tablosu ---
+model ActivityLog {
+  id        Int      @id @default(autoincrement())
+  action    String   // Örn: "Görev eklendi", "Görev silindi", "Renk değiştirildi"
+  projectId Int
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+}
