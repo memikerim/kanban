@@ -2,7 +2,10 @@ const prisma = require('../db');
 
 const getProjects = async (req, res) => {
     try {
+        const userId = req.user.userId;
+        // Sadece bu kullanıcının kişisel projelerini getir (workspace'e ait olmayanlar)
         const projects = await prisma.project.findMany({
+            where: { userId: parseInt(userId), workspaceId: null },
             include: { user: { select: { name: true } } }
         });
         res.json(projects);
