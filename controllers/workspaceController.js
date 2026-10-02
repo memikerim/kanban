@@ -1,5 +1,11 @@
 const prisma = require('../db');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
+
+// Benzersiz davet kodu oluştur (8 karakterli, okunabilir)
+const generateInviteCode = () => {
+    return crypto.randomBytes(4).toString('hex').toUpperCase(); // Örn: "A3F2B1C9"
+};
 
 // Yeni workspace oluştur
 const createWorkspace = async (req, res) => {
@@ -18,10 +24,20 @@ const createWorkspace = async (req, res) => {
         // Şifreyi hashle
         const hashedPassword = await bcrypt.hash(password, 10);
 
+        // Benzersiz davet kodu oluştur
+        let inviteCode = generateInviteCode();
+        // Çakışma kontrolü
+        let exists = await prisma.workspace.findUnique({ where: { inviteCode } });
+        while (exists) {
+            inviteCode = generateInviteCode();
+            exists = await prisma.workspace.findUnique({ where: { inviteCode } });
+        }
+
         const workspace = await prisma.workspace.create({
             data: {
                 name,
                 password: hashedPassword,
+                inviteCode,
                 members: {
                     create: {
                         userId: parseInt(userId),
@@ -41,6 +57,7 @@ const createWorkspace = async (req, res) => {
             workspace: {
                 id: workspace.id,
                 name: workspace.name,
+                inviteCode: workspace.inviteCode,
                 createdAt: workspace.createdAt,
                 members: workspace.members
             }
@@ -51,23 +68,23 @@ const createWorkspace = async (req, res) => {
     }
 };
 
-// Workspace'e katıl (şifre ile)
+// Workspace'e katıl (davet kodu + şifre ile)
 const joinWorkspace = async (req, res) => {
     try {
-        const { workspaceId, password } = req.body;
+        const { inviteCode, password } = req.body;
         const userId = req.user.userId;
 
-        if (!workspaceId || !password) {
-            return res.status(400).json({ error: "Çalışma alanı ID'si ve şifre gereklidir." });
+        if (!inviteCode || !password) {
+            return res.status(400).json({ error: "Davet kodu ve şifre gereklidir." });
         }
 
-        // Workspace'i bul
+        // Workspace'i davet kodu ile bul
         const workspace = await prisma.workspace.findUnique({
-            where: { id: parseInt(workspaceId) }
+            where: { inviteCode: inviteCode.toUpperCase().trim() }
         });
 
         if (!workspace) {
-            return res.status(404).json({ error: "Çalışma alanı bulunamadı." });
+            return res.status(404).json({ error: "Bu davet koduna ait çalışma alanı bulunamadı." });
         }
 
         // Şifreyi doğrula
@@ -78,7 +95,7 @@ const joinWorkspace = async (req, res) => {
 
         // Zaten üye mi kontrol et
         const existingMember = await prisma.workspaceMember.findUnique({
-            where: { userId_workspaceId: { userId: parseInt(userId), workspaceId: parseInt(workspaceId) } }
+            where: { userId_workspaceId: { userId: parseInt(userId), workspaceId: workspace.id } }
         });
 
         if (existingMember) {
@@ -89,7 +106,7 @@ const joinWorkspace = async (req, res) => {
         await prisma.workspaceMember.create({
             data: {
                 userId: parseInt(userId),
-                workspaceId: parseInt(workspaceId),
+                workspaceId: workspace.id,
                 role: 'MEMBER'
             }
         });
@@ -165,6 +182,7 @@ const getWorkspaces = async (req, res) => {
         const workspaces = memberships.map(m => ({
             id: m.workspace.id,
             name: m.workspace.name,
+            inviteCode: m.workspace.inviteCode,
             myRole: m.role,
             createdAt: m.workspace.createdAt,
             members: m.workspace.members,
@@ -211,7 +229,7 @@ const addProjectToWorkspace = async (req, res) => {
 
         res.status(201).json(newProject);
     } catch (error) {
-        console.error('Workspace projesı eklenirken hata:', error);
+        console.error('Workspace projesi eklenirken hata:', error);
         res.status(500).json({ error: "Proje eklenemedi." });
     }
 };

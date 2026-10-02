@@ -123,9 +123,9 @@ export default function Board() {
 
   // Workspace'e katıl
   const handleJoinWorkspace = async () => {
-    if (!joinWsId || !joinWsPassword) return showToast("Alan ID ve şifre gereklidir.", "error");
+    if (!joinWsId || !joinWsPassword) return showToast("Davet kodu ve şifre gereklidir.", "error");
     try {
-      const response = await api.post('/workspaces/join', { workspaceId: joinWsId, password: joinWsPassword });
+      const response = await api.post('/workspaces/join', { inviteCode: joinWsId, password: joinWsPassword });
       showToast(response.data.message, "success");
       setJoinWsId(''); setJoinWsPassword('');
       setShowWorkspaceModal(false);
@@ -169,10 +169,12 @@ export default function Board() {
     try {
       await api.post('/workspaces/kick', { workspaceId: currentWorkspaceId, targetUserId });
       showToast("Üye çıkarıldı.", "success");
-      await fetchWorkspaces();
-      // Üye listesini güncelle
-      const updated = workspaces.find(w => w.id === currentWorkspaceId);
-      if (updated) setWsMembersList(updated.members || []);
+      const wsResponse = await api.get('/workspaces');
+      if (Array.isArray(wsResponse.data)) {
+        setWorkspaces(wsResponse.data);
+        const updated = wsResponse.data.find(w => w.id === currentWorkspaceId);
+        if (updated) setWsMembersList(updated.members || []);
+      }
     } catch (error) {
       showToast(error.response?.data?.error || "Üye çıkarılamadı.", "error");
     }
@@ -184,11 +186,13 @@ export default function Board() {
     try {
       await api.post('/workspaces/project', { workspaceId: currentWorkspaceId, name: newProjectName });
       setNewProjectName('');
-      await fetchWorkspaces();
-      // Güncellenen workspace'in projelerini göster
-      const updatedWs = workspaces.find(w => w.id === currentWorkspaceId);
-      if (updatedWs) setProjects(updatedWs.projects || []);
-      else await fetchWorkspaces();
+      // Workspace verilerini yeniden çek ve projeleri güncelle
+      const wsResponse = await api.get('/workspaces');
+      if (Array.isArray(wsResponse.data)) {
+        setWorkspaces(wsResponse.data);
+        const updatedWs = wsResponse.data.find(w => w.id === currentWorkspaceId);
+        if (updatedWs) setProjects(updatedWs.projects || []);
+      }
     } catch (error) {
       showToast(error.response?.data?.error || "Proje eklenemedi.", "error");
     }
@@ -445,7 +449,7 @@ export default function Board() {
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                 <span style={{ fontWeight: 'bold', fontSize: '13px' }}>{ws.name}</span>
-                <small style={{ fontSize: '10px', color: '#a5b1c2' }}>ID: {ws.id}</small>
+                <small style={{ fontSize: '10px', color: '#a5b1c2' }}>Kod: {ws.inviteCode}</small>
               </div>
               <div style={{ display: 'flex', gap: '5px', marginTop: '3px' }}>
                 <button
@@ -876,7 +880,7 @@ export default function Board() {
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <input 
-                  type="number" placeholder="Çalışma Alanı ID" value={joinWsId}
+                  type="text" placeholder="Davet Kodu (Örn: A3F2B1C9)" value={joinWsId}
                   onChange={(e) => setJoinWsId(e.target.value)}
                   style={{ padding: '10px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '14px' }}
                 />

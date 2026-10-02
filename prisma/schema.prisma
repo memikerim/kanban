@@ -25,12 +25,13 @@ model User {
 
 // --- YENİ: Çalışma Alanı (Workspace) Modeli ---
 model Workspace {
-  id        Int                @id @default(autoincrement())
-  name      String
-  password  String             // bcrypt ile hashlenmiş şifre
-  createdAt DateTime           @default(now())
-  members   WorkspaceMember[]  // Bu alana dahil üyeler
-  projects  Project[]          // Bu alana ait projeler
+  id         Int                @id @default(autoincrement())
+  name       String
+  password   String             // bcrypt ile hashlenmiş şifre
+  inviteCode String             @unique // Benzersiz davet kodu (UUID)
+  createdAt  DateTime           @default(now())
+  members    WorkspaceMember[]  // Bu alana dahil üyeler
+  projects   Project[]          // Bu alana ait projeler
 }
 
 // --- YENİ: Çalışma Alanı Üyelik Modeli ---
