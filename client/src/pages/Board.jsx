@@ -230,7 +230,7 @@ export default function Board() {
         showToast("Proje başarıyla silindi.", "success");
       } catch (error) {
         if (error.response && error.response.status === 403) {
-          showToast("Bu işlemi gerçekleştirmek için Admin yetkisine sahip olmalısınız veya proje size ait olmalı!", "error");
+          showToast(error.response.data.error || "Yetkiniz yok!", "error");
         } else {
           showToast("Proje silinirken beklenmeyen bir hata oluştu.", "error");
         }

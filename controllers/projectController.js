@@ -56,12 +56,25 @@ const deleteProject = async (req, res) => {
         const project = await prisma.project.findUnique({ where: { id: parseInt(id) } });
         if (!project) return res.status(404).json({ error: "Proje bulunamadı." });
 
+        const userId = parseInt(req.user.userId);
         const role = req.user.role ? req.user.role.toLowerCase() : 'user';
         const isSuperUser = role === 'admin' || role === 'owner';
-        const isOwner = parseInt(project.userId) === parseInt(req.user.userId);
+        const isOwner = parseInt(project.userId) === userId;
 
-        if (!isSuperUser && !isOwner) {
-            return res.status(403).json({ error: "Sadece kendi oluşturduğunuz projeleri silebilirsiniz!" });
+        let isWorkspaceAdmin = false;
+        
+        // Eğer proje bir çalışma alanına aitse, kullanıcının o alanda ADMIN yetkisi var mı diye kontrol et
+        if (project.workspaceId) {
+            const member = await prisma.workspaceMember.findUnique({
+                where: { userId_workspaceId: { userId: userId, workspaceId: project.workspaceId } }
+            });
+            if (member && member.role === 'ADMIN') {
+                isWorkspaceAdmin = true;
+            }
+        }
+
+        if (!isSuperUser && !isOwner && !isWorkspaceAdmin) {
+            return res.status(403).json({ error: "Sadece kendi oluşturduğunuz veya admini olduğunuz çalışma alanındaki projeleri silebilirsiniz!" });
         }
 
         await prisma.project.delete({ where: { id: parseInt(id) } });
