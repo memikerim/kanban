@@ -23,6 +23,19 @@ export default function Board() {
   const [usersList, setUsersList] = useState([]);
   const [showUsersModal, setShowUsersModal] = useState(false);
 
+  // --- Workspace State ---
+  const [workspaces, setWorkspaces] = useState([]);
+  const [currentWorkspaceId, setCurrentWorkspaceId] = useState(null);
+  const [showWorkspaceModal, setShowWorkspaceModal] = useState(false);
+  const [workspaceTab, setWorkspaceTab] = useState('create'); // 'create' veya 'join'
+  const [newWsName, setNewWsName] = useState('');
+  const [newWsPassword, setNewWsPassword] = useState('');
+  const [joinWsId, setJoinWsId] = useState('');
+  const [joinWsPassword, setJoinWsPassword] = useState('');
+  const [showWsMembersModal, setShowWsMembersModal] = useState(false);
+  const [wsMembersList, setWsMembersList] = useState([]);
+  const [wsMyRole, setWsMyRole] = useState('');
+
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
   const fetchUser = useAuthStore((state) => state.fetchUser);
@@ -79,6 +92,107 @@ export default function Board() {
   useEffect(() => {
     fetchBoardData();
   }, [currentProjectId]);
+
+  // Workspace'leri çek
+  const fetchWorkspaces = async () => {
+    try {
+      const response = await api.get('/workspaces');
+      if (Array.isArray(response.data)) setWorkspaces(response.data);
+    } catch (error) {
+      console.error('Workspace\'ler yüklenemedi:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchWorkspaces();
+  }, []);
+
+  // Yeni workspace oluştur
+  const handleCreateWorkspace = async () => {
+    if (!newWsName || !newWsPassword) return showToast("İsim ve şifre gereklidir.", "error");
+    try {
+      await api.post('/workspaces', { name: newWsName, password: newWsPassword });
+      showToast("Çalışma alanı oluşturuldu!", "success");
+      setNewWsName(''); setNewWsPassword('');
+      setShowWorkspaceModal(false);
+      await fetchWorkspaces();
+    } catch (error) {
+      showToast(error.response?.data?.error || "Oluşturulamadı.", "error");
+    }
+  };
+
+  // Workspace'e katıl
+  const handleJoinWorkspace = async () => {
+    if (!joinWsId || !joinWsPassword) return showToast("Alan ID ve şifre gereklidir.", "error");
+    try {
+      const response = await api.post('/workspaces/join', { workspaceId: joinWsId, password: joinWsPassword });
+      showToast(response.data.message, "success");
+      setJoinWsId(''); setJoinWsPassword('');
+      setShowWorkspaceModal(false);
+      await fetchWorkspaces();
+    } catch (error) {
+      showToast(error.response?.data?.error || "Katılınamadı.", "error");
+    }
+  };
+
+  // Workspace seç → projeleri filtrele
+  const handleSelectWorkspace = (ws) => {
+    setCurrentWorkspaceId(ws.id);
+    setProjects(ws.projects || []);
+    setCurrentProjectId(null);
+    setColumns([]);
+  };
+
+  // Kişisel projelere dön
+  const handleBackToPersonal = async () => {
+    setCurrentWorkspaceId(null);
+    setCurrentProjectId(null);
+    setColumns([]);
+    try {
+      const response = await api.get('/projects');
+      setProjects(response.data);
+    } catch (error) {
+      console.error('Projeler yüklenemedi:', error);
+    }
+  };
+
+  // Workspace üyelerini göster
+  const handleShowWsMembers = (ws) => {
+    setWsMembersList(ws.members || []);
+    setWsMyRole(ws.myRole);
+    setShowWsMembersModal(true);
+  };
+
+  // Workspace'ten üye çıkar
+  const handleKickMember = async (targetUserId) => {
+    if (!window.confirm("Bu üyeyi çalışma alanından çıkarmak istediğinize emin misiniz?")) return;
+    try {
+      await api.post('/workspaces/kick', { workspaceId: currentWorkspaceId, targetUserId });
+      showToast("Üye çıkarıldı.", "success");
+      await fetchWorkspaces();
+      // Üye listesini güncelle
+      const updated = workspaces.find(w => w.id === currentWorkspaceId);
+      if (updated) setWsMembersList(updated.members || []);
+    } catch (error) {
+      showToast(error.response?.data?.error || "Üye çıkarılamadı.", "error");
+    }
+  };
+
+  // Workspace'e proje ekle
+  const handleAddWsProject = async () => {
+    if (!newProjectName || !currentWorkspaceId) return;
+    try {
+      await api.post('/workspaces/project', { workspaceId: currentWorkspaceId, name: newProjectName });
+      setNewProjectName('');
+      await fetchWorkspaces();
+      // Güncellenen workspace'in projelerini göster
+      const updatedWs = workspaces.find(w => w.id === currentWorkspaceId);
+      if (updatedWs) setProjects(updatedWs.projects || []);
+      else await fetchWorkspaces();
+    } catch (error) {
+      showToast(error.response?.data?.error || "Proje eklenemedi.", "error");
+    }
+  };
 
   const handleAddProject = async () => {
     if (!newProjectName) return;
@@ -318,8 +432,57 @@ export default function Board() {
         </div>
       )}
 
-      <aside className="sidebar">
-        <h3>Projelerim</h3>
+      <aside className="sidebar" style={{ overflowY: 'auto' }}>
+        {/* ÇALIŞMA ALANLARI */}
+        <h3 style={{ fontSize: '14px', marginBottom: '5px' }}>🏢 Çalışma Alanları</h3>
+        <ul>
+          {workspaces.map((ws) => (
+            <li 
+              key={ws.id} 
+              className={currentWorkspaceId === ws.id ? 'active' : ''}
+              onClick={() => handleSelectWorkspace(ws)}
+              style={{ display: 'flex', flexDirection: 'column', gap: '4px', padding: '8px', cursor: 'pointer' }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                <span style={{ fontWeight: 'bold', fontSize: '13px' }}>{ws.name}</span>
+                <small style={{ fontSize: '10px', color: '#a5b1c2' }}>ID: {ws.id}</small>
+              </div>
+              <div style={{ display: 'flex', gap: '5px', marginTop: '3px' }}>
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleShowWsMembers(ws); setCurrentWorkspaceId(ws.id); }}
+                  style={{ fontSize: '10px', padding: '3px 6px', background: '#e4f0f6', color: '#0079bf', border: 'none', borderRadius: '3px', cursor: 'pointer' }}
+                >
+                  👥 Üyeler ({ws.members?.length || 0})
+                </button>
+                <small style={{ fontSize: '10px', color: '#a5b1c2', alignSelf: 'center' }}>
+                  {ws.myRole === 'ADMIN' ? '⭐ Admin' : '👤 Üye'}
+                </small>
+              </div>
+            </li>
+          ))}
+        </ul>
+        <button 
+          onClick={() => setShowWorkspaceModal(true)}
+          style={{ width: '100%', padding: '8px', background: '#6c5ce7', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px', marginBottom: '15px' }}
+        >
+          + Yeni Alan / Alana Katıl
+        </button>
+
+        {/* PROJELER */}
+        <hr style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.2)', margin: '10px 0' }} />
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h3 style={{ fontSize: '14px', marginBottom: '5px' }}>
+            {currentWorkspaceId ? '📁 Alan Projeleri' : '📁 Projelerim'}
+          </h3>
+          {currentWorkspaceId && (
+            <button 
+              onClick={handleBackToPersonal}
+              style={{ fontSize: '10px', padding: '3px 8px', background: '#fdcb6e', color: '#2d3436', border: 'none', borderRadius: '3px', cursor: 'pointer', fontWeight: 'bold' }}
+            >
+              ← Kişisel
+            </button>
+          )}
+        </div>
         <ul>
           {projects.map((project) => (
             <li 
@@ -353,7 +516,7 @@ export default function Board() {
             value={newProjectName} 
             onChange={(e) => setNewProjectName(e.target.value)} 
           />
-          <button onClick={handleAddProject}>+ Proje Ekle</button>
+          <button onClick={currentWorkspaceId ? handleAddWsProject : handleAddProject}>+ Proje Ekle</button>
         </div>
       </aside>
 
@@ -652,6 +815,131 @@ export default function Board() {
                     ))}
                   </tbody>
                 </table>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+      {/* WORKSPACE OLUŞTUR / KATIL MODALI */}
+      {showWorkspaceModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+          backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
+        }}>
+          <div style={{
+            background: '#f4f5f7', padding: '24px', borderRadius: '8px', width: '420px', display: 'flex', flexDirection: 'column', gap: '15px'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ margin: 0, color: '#172b4d' }}>🏢 Çalışma Alanı</h3>
+              <button onClick={() => setShowWorkspaceModal(false)} style={{ background: 'transparent', border: 'none', fontSize: '18px', cursor: 'pointer', color: '#5e6c84' }}>✖</button>
+            </div>
+
+            {/* Tab Butonları */}
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button 
+                onClick={() => setWorkspaceTab('create')}
+                style={{ flex: 1, padding: '8px', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold',
+                  background: workspaceTab === 'create' ? '#6c5ce7' : '#dfe6e9', color: workspaceTab === 'create' ? '#fff' : '#2d3436'
+                }}
+              >
+                ✨ Yeni Oluştur
+              </button>
+              <button 
+                onClick={() => setWorkspaceTab('join')}
+                style={{ flex: 1, padding: '8px', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold',
+                  background: workspaceTab === 'join' ? '#6c5ce7' : '#dfe6e9', color: workspaceTab === 'join' ? '#fff' : '#2d3436'
+                }}
+              >
+                🔗 Alana Katıl
+              </button>
+            </div>
+
+            {workspaceTab === 'create' ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <input 
+                  type="text" placeholder="Çalışma Alanı Adı" value={newWsName}
+                  onChange={(e) => setNewWsName(e.target.value)}
+                  style={{ padding: '10px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '14px' }}
+                />
+                <input 
+                  type="password" placeholder="Şifre (min 4 karakter)" value={newWsPassword}
+                  onChange={(e) => setNewWsPassword(e.target.value)}
+                  style={{ padding: '10px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '14px' }}
+                />
+                <button 
+                  onClick={handleCreateWorkspace}
+                  style={{ padding: '10px', background: '#6c5ce7', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+                >
+                  Oluştur
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <input 
+                  type="number" placeholder="Çalışma Alanı ID" value={joinWsId}
+                  onChange={(e) => setJoinWsId(e.target.value)}
+                  style={{ padding: '10px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '14px' }}
+                />
+                <input 
+                  type="password" placeholder="Şifre" value={joinWsPassword}
+                  onChange={(e) => setJoinWsPassword(e.target.value)}
+                  style={{ padding: '10px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '14px' }}
+                />
+                <button 
+                  onClick={handleJoinWorkspace}
+                  style={{ padding: '10px', background: '#00b894', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+                >
+                  Katıl
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* WORKSPACE ÜYELERİ MODALI */}
+      {showWsMembersModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+          backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
+        }}>
+          <div style={{
+            background: '#f4f5f7', padding: '24px', borderRadius: '8px', width: '500px', maxHeight: '70vh', display: 'flex', flexDirection: 'column', gap: '15px'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ margin: 0, color: '#172b4d' }}>👥 Çalışma Alanı Üyeleri</h3>
+              <button onClick={() => setShowWsMembersModal(false)} style={{ background: 'transparent', border: 'none', fontSize: '18px', cursor: 'pointer', color: '#5e6c84' }}>✖</button>
+            </div>
+
+            <div style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {wsMembersList.length === 0 ? (
+                <p style={{ color: '#5e6c84', textAlign: 'center' }}>Üye bulunamadı.</p>
+              ) : (
+                wsMembersList.map(m => (
+                  <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px', background: '#fff', borderRadius: '4px', boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>
+                    <div>
+                      <strong>{m.user?.name}</strong>
+                      <small style={{ display: 'block', color: '#888', fontSize: '11px' }}>{m.user?.email}</small>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ 
+                        fontSize: '11px', padding: '3px 8px', borderRadius: '3px', fontWeight: 'bold',
+                        background: m.role === 'ADMIN' ? '#ffeaa7' : '#dfe6e9',
+                        color: m.role === 'ADMIN' ? '#d35400' : '#636e72'
+                      }}>
+                        {m.role === 'ADMIN' ? '⭐ Admin' : '👤 Üye'}
+                      </span>
+                      {wsMyRole === 'ADMIN' && m.role !== 'ADMIN' && (
+                        <button 
+                          onClick={() => handleKickMember(m.user?.id)}
+                          style={{ padding: '4px 8px', background: '#ff5630', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}
+                        >
+                          Çıkar
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))
               )}
             </div>
           </div>

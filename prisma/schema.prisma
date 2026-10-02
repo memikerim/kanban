@@ -18,6 +18,31 @@ model User {
   // --- Yeni Eklenen İlişkiler ---
   tasks        Task[]        // Kullanıcının oluşturduğu görevler
   activityLogs ActivityLog[] // Kullanıcının yaptığı aktiviteler
+
+  // --- Workspace İlişkisi ---
+  workspaceMembers WorkspaceMember[] // Kullanıcının dahil olduğu çalışma alanları
+}
+
+// --- YENİ: Çalışma Alanı (Workspace) Modeli ---
+model Workspace {
+  id        Int                @id @default(autoincrement())
+  name      String
+  password  String             // bcrypt ile hashlenmiş şifre
+  createdAt DateTime           @default(now())
+  members   WorkspaceMember[]  // Bu alana dahil üyeler
+  projects  Project[]          // Bu alana ait projeler
+}
+
+// --- YENİ: Çalışma Alanı Üyelik Modeli ---
+model WorkspaceMember {
+  id          Int       @id @default(autoincrement())
+  role        String    @default("MEMBER") // 'ADMIN' veya 'MEMBER'
+  userId      Int
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspaceId Int
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, workspaceId]) // Bir kullanıcı aynı workspace'te 2 kez olamaz
 }
 
 model Project {
@@ -28,6 +53,10 @@ model Project {
   tasks        Task[] 
   columns      Column[]
   
+  // --- Workspace İlişkisi ---
+  workspaceId  Int?
+  workspace    Workspace?    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
   // --- Yeni Eklenen İlişki ---
   activityLogs ActivityLog[] // Projeye ait son hareketler (Log kayıtları)
 }

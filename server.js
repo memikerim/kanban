@@ -30,12 +30,14 @@ const projectRoutes = require('./routes/projectRoutes');
 const taskRoutes = require('./routes/taskRoutes');
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
+const workspaceRoutes = require('./routes/workspaceRoutes');
 
 // API Rotaları
 app.use('/api/projects', projectRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/workspaces', workspaceRoutes);
 
 // Sağlık Kontrolü (Test Rotası)
 app.get('/api/health', (req, res) => {
