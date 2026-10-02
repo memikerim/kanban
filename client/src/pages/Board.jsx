@@ -35,6 +35,7 @@ export default function Board() {
   const [showWsMembersModal, setShowWsMembersModal] = useState(false);
   const [wsMembersList, setWsMembersList] = useState([]);
   const [wsMyRole, setWsMyRole] = useState('');
+  const [wsCurrentInviteCode, setWsCurrentInviteCode] = useState('');
 
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
@@ -160,6 +161,7 @@ export default function Board() {
   const handleShowWsMembers = (ws) => {
     setWsMembersList(ws.members || []);
     setWsMyRole(ws.myRole);
+    setWsCurrentInviteCode(ws.inviteCode);
     setShowWsMembersModal(true);
   };
 
@@ -449,7 +451,16 @@ export default function Board() {
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                 <span style={{ fontWeight: 'bold', fontSize: '13px' }}>{ws.name}</span>
-                <small style={{ fontSize: '10px', color: '#a5b1c2' }}>Kod: {ws.inviteCode}</small>
+                <small 
+                  onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(ws.inviteCode); showToast("Davet kodu kopyalandı!", "success"); }}
+                  title="Kopyalamak için tıklayın"
+                  style={{ 
+                    fontSize: '10px', color: '#6c5ce7', background: '#e8e6fb', 
+                    padding: '2px 6px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontFamily: 'monospace'
+                  }}
+                >
+                  {ws.inviteCode} 📋
+                </small>
               </div>
               <div style={{ display: 'flex', gap: '5px', marginTop: '3px' }}>
                 <button
@@ -863,11 +874,13 @@ export default function Board() {
                 <input 
                   type="text" placeholder="Çalışma Alanı Adı" value={newWsName}
                   onChange={(e) => setNewWsName(e.target.value)}
+                  autoComplete="off"
                   style={{ padding: '10px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '14px' }}
                 />
                 <input 
                   type="password" placeholder="Şifre (min 4 karakter)" value={newWsPassword}
                   onChange={(e) => setNewWsPassword(e.target.value)}
+                  autoComplete="new-password"
                   style={{ padding: '10px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '14px' }}
                 />
                 <button 
@@ -882,11 +895,13 @@ export default function Board() {
                 <input 
                   type="text" placeholder="Davet Kodu (Örn: A3F2B1C9)" value={joinWsId}
                   onChange={(e) => setJoinWsId(e.target.value)}
+                  autoComplete="off"
                   style={{ padding: '10px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '14px' }}
                 />
                 <input 
                   type="password" placeholder="Şifre" value={joinWsPassword}
                   onChange={(e) => setJoinWsPassword(e.target.value)}
+                  autoComplete="new-password"
                   style={{ padding: '10px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '14px' }}
                 />
                 <button 
@@ -911,7 +926,21 @@ export default function Board() {
             background: '#f4f5f7', padding: '24px', borderRadius: '8px', width: '500px', maxHeight: '70vh', display: 'flex', flexDirection: 'column', gap: '15px'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ margin: 0, color: '#172b4d' }}>👥 Çalışma Alanı Üyeleri</h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                <h3 style={{ margin: 0, color: '#172b4d' }}>👥 Çalışma Alanı Üyeleri</h3>
+                {wsCurrentInviteCode && (
+                  <span 
+                    onClick={() => { navigator.clipboard.writeText(wsCurrentInviteCode); showToast("Davet kodu kopyalandı!", "success"); }}
+                    title="Kopyalamak için tıklayın"
+                    style={{ 
+                      fontSize: '12px', background: '#e8e6fb', color: '#6c5ce7', 
+                      padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontFamily: 'monospace' 
+                    }}
+                  >
+                    Kod: {wsCurrentInviteCode} 📋
+                  </span>
+                )}
+              </div>
               <button onClick={() => setShowWsMembersModal(false)} style={{ background: 'transparent', border: 'none', fontSize: '18px', cursor: 'pointer', color: '#5e6c84' }}>✖</button>
             </div>
 
