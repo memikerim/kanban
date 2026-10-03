@@ -866,22 +866,39 @@ export default function Board() {
               </div>
 
               {editingTask.attachments && editingTask.attachments.length > 0 ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '150px', overflowY: 'auto' }}>
-                  {editingTask.attachments.map(att => (
-                    <div key={att.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', padding: '8px', borderRadius: '4px', border: '1px solid #ebecf0' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
-                        {['jpg', 'jpeg', 'png', 'gif'].includes(att.format?.toLowerCase()) ? (
-                          <img src={att.url} alt="Önizleme" style={{ width: '30px', height: '30px', objectFit: 'cover', borderRadius: '4px' }} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '250px', overflowY: 'auto', paddingRight: '5px' }}>
+                  {editingTask.attachments.map(att => {
+                    const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(att.format?.toLowerCase());
+                    return (
+                      <div key={att.id} style={{ display: 'flex', gap: '12px', background: '#fff', padding: '10px', borderRadius: '6px', border: '1px solid #dfe1e6', alignItems: 'center' }}>
+                        {isImage ? (
+                          <div style={{ width: '80px', height: '60px', flexShrink: 0, borderRadius: '4px', overflow: 'hidden', backgroundColor: '#091e420f' }}>
+                            <img src={att.url} alt="Önizleme" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          </div>
                         ) : (
-                          <span style={{ fontSize: '16px' }}>📄</span>
+                          <div style={{ width: '80px', height: '60px', flexShrink: 0, borderRadius: '4px', backgroundColor: '#e4f0f6', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '24px' }}>
+                            📄
+                          </div>
                         )}
-                        <a href={att.url} target="_blank" rel="noreferrer" style={{ fontSize: '12px', color: '#0052cc', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {att.originalName || 'Dosya'}
-                        </a>
+                        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, gap: '4px' }}>
+                          <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#172b4d', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {att.originalName || 'Dosya'}
+                          </span>
+                          <span style={{ fontSize: '11px', color: '#5e6c84' }}>
+                            Eklenti • {att.format?.toUpperCase() || 'BİLİNMEYEN'}
+                          </span>
+                          <div style={{ display: 'flex', gap: '10px', marginTop: '2px' }}>
+                            <a href={att.url} target="_blank" rel="noreferrer" style={{ fontSize: '12px', color: '#0052cc', textDecoration: 'underline', cursor: 'pointer' }}>
+                              Aç
+                            </a>
+                            <button onClick={() => handleDeleteAttachment(att.id)} style={{ fontSize: '12px', color: '#ff5630', textDecoration: 'underline', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>
+                              Sil
+                            </button>
+                          </div>
+                        </div>
                       </div>
-                      <button onClick={() => handleDeleteAttachment(att.id)} style={{ background: 'transparent', border: 'none', color: '#ff5630', cursor: 'pointer', fontWeight: 'bold' }}>✖</button>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <p style={{ margin: 0, fontSize: '12px', color: '#5e6c84' }}>Henüz dosya eklenmemiş.</p>
