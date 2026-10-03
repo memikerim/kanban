@@ -775,7 +775,7 @@ export default function Board() {
           backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
         }}>
           <div style={{
-            background: '#f4f5f7', padding: '24px', borderRadius: '8px', width: '400px', display: 'flex', flexDirection: 'column', gap: '15px'
+            background: '#f4f5f7', padding: '24px', borderRadius: '8px', width: '90%', maxWidth: '400px', display: 'flex', flexDirection: 'column', gap: '15px'
           }}>
             <h3 style={{ margin: 0, color: '#172b4d' }}>Görev Detayı</h3>
             
@@ -840,7 +840,7 @@ export default function Board() {
           backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
         }}>
           <div style={{
-            background: '#f4f5f7', padding: '24px', borderRadius: '8px', width: '500px', maxHeight: '80vh', display: 'flex', flexDirection: 'column', gap: '15px'
+            background: '#f4f5f7', padding: '24px', borderRadius: '8px', width: '90%', maxWidth: '500px', maxHeight: '80vh', display: 'flex', flexDirection: 'column', gap: '15px'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ margin: 0, color: '#172b4d' }}>🕒 Son Değişiklikler</h3>
@@ -873,7 +873,7 @@ export default function Board() {
           backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
         }}>
           <div style={{
-            background: '#f4f5f7', padding: '24px', borderRadius: '8px', width: '600px', maxHeight: '80vh', display: 'flex', flexDirection: 'column', gap: '15px'
+            background: '#f4f5f7', padding: '24px', borderRadius: '8px', width: '95%', maxWidth: '700px', maxHeight: '80vh', display: 'flex', flexDirection: 'column', gap: '15px'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ margin: 0, color: '#172b4d' }}>👥 Kullanıcı Yönetimi</h3>
@@ -884,7 +884,8 @@ export default function Board() {
               {usersList.length === 0 ? (
                 <p style={{ color: '#5e6c84', textAlign: 'center' }}>Kullanıcı bulunamadı.</p>
               ) : (
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', backgroundColor: '#fff', borderRadius: '4px', overflow: 'hidden' }}>
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', minWidth: '450px', borderCollapse: 'collapse', textAlign: 'left', backgroundColor: '#fff', borderRadius: '4px', overflow: 'hidden' }}>
                   <thead style={{ backgroundColor: '#e4f0f6', color: '#172b4d' }}>
                     <tr>
                       <th style={{ padding: '10px' }}>İsim</th>
@@ -924,6 +925,7 @@ export default function Board() {
                     ))}
                   </tbody>
                 </table>
+                </div>
               )}
             </div>
           </div>
@@ -936,7 +938,7 @@ export default function Board() {
           backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
         }}>
           <div style={{
-            background: '#f4f5f7', padding: '24px', borderRadius: '8px', width: '420px', display: 'flex', flexDirection: 'column', gap: '15px'
+            background: '#f4f5f7', padding: '24px', borderRadius: '8px', width: '90%', maxWidth: '420px', display: 'flex', flexDirection: 'column', gap: '15px'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ margin: 0, color: '#172b4d' }}>🏢 Çalışma Alanı</h3>
@@ -1017,7 +1019,7 @@ export default function Board() {
           backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
         }}>
           <div style={{
-            background: '#f4f5f7', padding: '24px', borderRadius: '8px', width: '500px', maxHeight: '70vh', display: 'flex', flexDirection: 'column', gap: '15px'
+            background: '#f4f5f7', padding: '24px', borderRadius: '8px', width: '90%', maxWidth: '500px', maxHeight: '70vh', display: 'flex', flexDirection: 'column', gap: '15px'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
@@ -1079,7 +1081,7 @@ export default function Board() {
           backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
         }}>
           <div style={{
-            background: '#f4f5f7', padding: '24px', borderRadius: '8px', width: '420px', display: 'flex', flexDirection: 'column', gap: '15px'
+            background: '#f4f5f7', padding: '24px', borderRadius: '8px', width: '90%', maxWidth: '420px', display: 'flex', flexDirection: 'column', gap: '15px'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ margin: 0, color: '#172b4d' }}>⚙️ Hesap Yönetimi</h3>

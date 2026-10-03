@@ -94,7 +94,7 @@ model Task {
   user        User?     @relation(fields: [userId], references: [id])
 }
 
-// --- YENİ: Projedeki Son Değişiklikler (Hareket Dökümü) Tablosu ---
+//  Projedeki Son Değişiklikler (Hareket Dökümü) Tablosu ---
 model ActivityLog {
   id        Int      @id @default(autoincrement())
   action    String   // Örn: "Görev eklendi", "Görev silindi", "Renk değiştirildi"
