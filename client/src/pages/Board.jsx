@@ -356,9 +356,7 @@ export default function Board() {
 
     try {
       showToast('Dosya yükleniyor...', 'info');
-      const res = await api.post(`/tasks/${editingTask.id}/attachments`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      const res = await api.post(`/tasks/${editingTask.id}/attachments`, formData);
       
       setEditingTask(prev => ({
         ...prev,
