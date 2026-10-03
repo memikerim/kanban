@@ -51,7 +51,7 @@ const login = async (req, res) => {
             { expiresIn: '1d' } 
         );
 
-        res.json({ token, user: { id: user.id, name: user.name, role: user.role } });
+        res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
     } catch (error) {
         console.error("Giriş hatası:", error);
         res.status(500).json({ error: "Sunucu hatası." });
