@@ -583,6 +583,35 @@ export default function Board() {
           />
           <button onClick={currentWorkspaceId ? handleAddWsProject : handleAddProject}>+ Proje Ekle</button>
         </div>
+
+        {/* MOBİL İÇİN KULLANICI MENÜSÜ (Sadece telefonda görünür) */}
+        <div className="mobile-user-menu" style={{ marginTop: '20px', paddingTop: '15px', borderTop: '1px solid rgba(255,255,255,0.2)', flexDirection: 'column', gap: '10px' }}>
+          <div style={{ fontSize: '12px', opacity: 0.9 }}>
+            Giriş: <strong>{currentUser.name}</strong>
+          </div>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            {currentUser.rawRole === 'owner' && (
+              <button 
+                onClick={handleOpenUsersModal} 
+                style={{ padding: '6px', background: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '11px', flex: 1 }}
+              >
+                👥 Kullanıcılar
+              </button>
+            )}
+            <button 
+              onClick={() => { setShowAccountModal(true); setDeleteAccountError(''); setDeleteAccountPassword(''); }}
+              style={{ padding: '6px', background: '#4A5568', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '11px', flex: 1 }}
+            >
+              ⚙️ Hesabım
+            </button>
+            <button 
+              onClick={handleLogout} 
+              style={{ padding: '6px', background: '#eb5a46', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '11px', flex: 1 }}
+            >
+              Çıkış
+            </button>
+          </div>
+        </div>
       </aside>
 
       <main className={`board ${!currentProjectId ? 'hide-main-on-mobile' : ''}`}>
@@ -609,7 +638,7 @@ export default function Board() {
             )}
           </div>
           
-          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+          <div className="desktop-user-menu" style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
             <div style={{ textAlign: 'right', lineHeight: '1.2' }}>
               <span style={{ display: 'block', fontSize: '14px', fontWeight: 'bold' }}>
                 Giriş yapıldı: {currentUser.name}
