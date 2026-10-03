@@ -81,13 +81,23 @@ const forgotPassword = async (req, res) => {
         const frontendUrl = req.headers.origin || 'https://kanban-t778.onrender.com';
         const resetLink = `${frontendUrl}/#/reset-password/${resetToken}`;
 
+        if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+            console.error("Sunucu Hatası: EMAIL_USER veya EMAIL_PASS çevresel değişkenleri tanımlanmamış.");
+            return res.status(500).json({ error: "Sunucu e-posta göndermek için yapılandırılmamış (Ayarlar eksik)." });
+        }
+
         // Mail gönderimi için ayarlar (Gmail için)
         const transporter = nodemailer.createTransport({
-            service: 'gmail',
+            host: 'smtp.gmail.com',
+            port: 465,
+            secure: true, // SSL kullan
             auth: {
                 user: process.env.EMAIL_USER,
                 pass: process.env.EMAIL_PASS
-            }
+            },
+            connectionTimeout: 10000, // 10 saniye içinde bağlanamazsa hata ver
+            greetingTimeout: 10000,
+            socketTimeout: 10000
         });
 
         const mailOptions = {
