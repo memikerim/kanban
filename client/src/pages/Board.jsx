@@ -922,8 +922,8 @@ export default function Board() {
                             Eklenti • {att.format?.toUpperCase() || 'BİLİNMEYEN'}
                           </span>
                           <div style={{ display: 'flex', gap: '10px', marginTop: '2px' }}>
-                            <a href={att.url} target="_blank" rel="noreferrer" style={{ fontSize: '12px', color: '#0052cc', textDecoration: 'underline', cursor: 'pointer' }}>
-                              Aç
+                            <a href={isImage ? att.url : att.url.replace('/upload/', '/upload/fl_attachment/')} target="_blank" rel="noreferrer" style={{ fontSize: '12px', color: '#0052cc', textDecoration: 'underline', cursor: 'pointer' }}>
+                              Aç / İndir
                             </a>
                             <button onClick={() => handleDeleteAttachment(att.id)} style={{ fontSize: '12px', color: '#ff5630', textDecoration: 'underline', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>
                               Sil
