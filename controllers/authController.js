@@ -93,5 +93,39 @@ const getMe = async (req, res) => {
     }
 };
 
+// Kendi hesabını sil (Şifre doğrulaması ile)
+const deleteMyAccount = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const { password } = req.body;
+
+        if (!password) {
+            return res.status(400).json({ error: "Hesabınızı silmek için şifrenizi girmelisiniz." });
+        }
+
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+        if (!user) {
+            return res.status(404).json({ error: "Kullanıcı bulunamadı." });
+        }
+
+        // Şifre doğrulaması
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+        if (!isPasswordValid) {
+            return res.status(401).json({ error: "Şifre hatalı! Hesap silinemedi." });
+        }
+
+        // Kullanıcının workspace üyeliklerini sil
+        await prisma.workspaceMember.deleteMany({ where: { userId } });
+
+        // Kullanıcıyı sil (cascade ile projeler, tasklar vb. de silinir)
+        await prisma.user.delete({ where: { id: userId } });
+
+        res.json({ message: "Hesabınız başarıyla silindi." });
+    } catch (error) {
+        console.error("Hesap silme hatası:", error);
+        res.status(500).json({ error: "Hesap silinirken bir hata oluştu." });
+    }
+};
+
 // Tüm fonksiyonları dışa aktar
-module.exports = { register, login, forgotPassword, resetPassword, getMe };
+module.exports = { register, login, forgotPassword, resetPassword, getMe, deleteMyAccount };

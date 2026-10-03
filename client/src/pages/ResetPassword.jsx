@@ -5,6 +5,7 @@ import api from '../api/axios';
 export default function ResetPassword() {
   const { token } = useParams(); // URL'deki token'ı yakalar
   const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -17,6 +18,10 @@ export default function ResetPassword() {
     // Frontend doğrulaması
     if (newPassword.length < 6) {
       return setError('Şifre en az 6 karakter olmalıdır.');
+    }
+
+    if (newPassword !== confirmPassword) {
+      return setError('Şifreler eşleşmiyor! Lütfen kontrol edin.');
     }
 
     try {
@@ -43,7 +48,26 @@ export default function ResetPassword() {
           value={newPassword} 
           onChange={(e) => setNewPassword(e.target.value)} 
           required 
+          autoComplete="new-password"
         />
+        <input 
+          type="password" 
+          placeholder="Şifre Tekrar" 
+          value={confirmPassword} 
+          onChange={(e) => setConfirmPassword(e.target.value)} 
+          required 
+          autoComplete="new-password"
+          style={{ 
+            borderColor: confirmPassword && newPassword !== confirmPassword ? '#ff5630' : undefined,
+            borderWidth: confirmPassword && newPassword !== confirmPassword ? '2px' : undefined
+          }}
+        />
+        {confirmPassword && newPassword !== confirmPassword && (
+          <small style={{ color: '#ff5630', fontSize: '12px' }}>⚠ Şifreler eşleşmiyor</small>
+        )}
+        {confirmPassword && newPassword === confirmPassword && confirmPassword.length >= 6 && (
+          <small style={{ color: '#36B37E', fontSize: '12px' }}>✓ Şifreler eşleşiyor</small>
+        )}
         
         <button type="submit">Şifreyi Güncelle</button>
       </form>

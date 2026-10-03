@@ -37,6 +37,29 @@ export default function Board() {
   const [wsMyRole, setWsMyRole] = useState('');
   const [wsCurrentInviteCode, setWsCurrentInviteCode] = useState('');
 
+  // --- Account Modal State ---
+  const [showAccountModal, setShowAccountModal] = useState(false);
+  const [deleteAccountPassword, setDeleteAccountPassword] = useState('');
+  const [deleteAccountError, setDeleteAccountError] = useState('');
+
+  const handleDeleteMyAccount = async (e) => {
+    e.preventDefault();
+    setDeleteAccountError('');
+    if (!deleteAccountPassword) {
+      setDeleteAccountError('Lütfen onaylamak için şifrenizi girin.');
+      return;
+    }
+    if (!window.confirm("Hesabınızı silmek istediğinize emin misiniz? Bu işlem geri alınamaz!")) return;
+    try {
+      await api.post('/auth/delete-account', { password: deleteAccountPassword });
+      setShowAccountModal(false);
+      logout();
+      navigate('/login');
+    } catch (error) {
+      setDeleteAccountError(error.response?.data?.error || 'Hesap silinemedi.');
+    }
+  };
+
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
   const fetchUser = useAuthStore((state) => state.fetchUser);
@@ -567,6 +590,12 @@ export default function Board() {
                 👥 Kullanıcı Yönetimi
               </button>
             )}
+            <button 
+              onClick={() => { setShowAccountModal(true); setDeleteAccountError(''); setDeleteAccountPassword(''); }}
+              style={{ padding: '8px 14px', background: '#4A5568', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+            >
+              ⚙️ Hesabım
+            </button>
             <button onClick={handleLogout} className="logout-btn">Çıkış Yap</button>
           </div>
         </header>
@@ -974,6 +1003,70 @@ export default function Board() {
                   </div>
                 ))
               )}
+            </div>
+          </div>
+        </div>
+      )}
+      {/* HESAP YÖNETİMİ MODALI */}
+      {showAccountModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+          backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
+        }}>
+          <div style={{
+            background: '#f4f5f7', padding: '24px', borderRadius: '8px', width: '420px', display: 'flex', flexDirection: 'column', gap: '15px'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ margin: 0, color: '#172b4d' }}>⚙️ Hesap Yönetimi</h3>
+              <button onClick={() => setShowAccountModal(false)} style={{ background: 'transparent', border: 'none', fontSize: '18px', cursor: 'pointer', color: '#5e6c84' }}>✖</button>
+            </div>
+
+            <div style={{ background: '#fff', padding: '15px', borderRadius: '6px', border: '1px solid #dfe1e6' }}>
+              <div style={{ marginBottom: '8px' }}>
+                <span style={{ fontSize: '12px', color: '#5e6c84', display: 'block' }}>Kullanıcı Adı</span>
+                <strong style={{ fontSize: '14px', color: '#172b4d' }}>{currentUser.name}</strong>
+              </div>
+              <div style={{ marginBottom: '8px' }}>
+                <span style={{ fontSize: '12px', color: '#5e6c84', display: 'block' }}>E-posta</span>
+                <strong style={{ fontSize: '14px', color: '#172b4d' }}>{user?.email || '-'}</strong>
+              </div>
+              <div>
+                <span style={{ fontSize: '12px', color: '#5e6c84', display: 'block' }}>Yetki Seviyesi</span>
+                <strong style={{ fontSize: '14px', color: '#0052cc' }}>{currentUser.role}</strong>
+              </div>
+            </div>
+
+            <div style={{ background: '#fff0f0', padding: '15px', borderRadius: '6px', border: '1px solid #ffbdad' }}>
+              <h4 style={{ margin: '0 0 8px 0', color: '#bf2600', fontSize: '14px' }}>⚠️ Hesabı Sil</h4>
+              <p style={{ margin: '0 0 12px 0', fontSize: '12px', color: '#5e6c84' }}>
+                Hesabınızı sildiğinizde oluşturduğunuz tüm veriler kalıcı olarak temizlenecektir.
+              </p>
+
+              {deleteAccountError && (
+                <div style={{
+                  backgroundColor: '#ffebe6', color: '#bf2600', padding: '8px 12px', borderRadius: '4px',
+                  border: '1px solid #ffbdad', marginBottom: '10px', fontSize: '12px', fontWeight: 'bold'
+                }}>
+                  {deleteAccountError}
+                </div>
+              )}
+
+              <form onSubmit={handleDeleteMyAccount} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <input 
+                  type="password" 
+                  placeholder="Onay için mevcut şifrenizi girin" 
+                  value={deleteAccountPassword}
+                  onChange={(e) => setDeleteAccountPassword(e.target.value)}
+                  autoComplete="current-password"
+                  style={{ padding: '8px 10px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '13px' }}
+                />
+                <button 
+                  type="submit"
+                  style={{ padding: '10px', background: '#ff5630', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}
+                >
+                  Hesabımı Kalıcı Olarak Sil
+                </button>
+              </form>
             </div>
           </div>
         </div>

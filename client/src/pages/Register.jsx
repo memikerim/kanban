@@ -6,6 +6,7 @@ export default function Register() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -16,6 +17,15 @@ export default function Register() {
     e.preventDefault();
     setErrorMessage('');
     setSuccessMessage('');
+
+    // Şifre doğrulama kontrolü
+    if (password !== confirmPassword) {
+      return setErrorMessage("Şifreler eşleşmiyor! Lütfen kontrol edin.");
+    }
+
+    if (password.length < 6) {
+      return setErrorMessage("Şifre en az 6 karakter olmalıdır.");
+    }
 
     try {
       const response = await api.post('/auth/register', { name, email, password });
@@ -85,12 +95,31 @@ export default function Register() {
           />
           <input 
             type="password" 
-            placeholder="Şifreniz" 
+            placeholder="Şifreniz (En az 6 karakter)" 
             value={password} 
             onChange={(e) => setPassword(e.target.value)} 
             required 
+            autoComplete="new-password"
             style={{ padding: '10px', borderRadius: '4px', border: '1px solid #dfe1e6', fontSize: '14px' }}
           />
+          <input 
+            type="password" 
+            placeholder="Şifre Tekrar" 
+            value={confirmPassword} 
+            onChange={(e) => setConfirmPassword(e.target.value)} 
+            required 
+            autoComplete="new-password"
+            style={{ 
+              padding: '10px', borderRadius: '4px', fontSize: '14px',
+              border: confirmPassword && password !== confirmPassword ? '2px solid #ff5630' : '1px solid #dfe1e6'
+            }}
+          />
+          {confirmPassword && password !== confirmPassword && (
+            <small style={{ color: '#ff5630', fontSize: '12px', marginTop: '-10px' }}>⚠ Şifreler eşleşmiyor</small>
+          )}
+          {confirmPassword && password === confirmPassword && confirmPassword.length >= 6 && (
+            <small style={{ color: '#36B37E', fontSize: '12px', marginTop: '-10px' }}>✓ Şifreler eşleşiyor</small>
+          )}
           <button 
             type="submit" 
             style={{ padding: '12px', backgroundColor: '#5aac44', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '15px' }}
