@@ -59,6 +59,10 @@ const login = async (req, res) => {
 };
 
 const nodemailer = require('nodemailer');
+const dns = require('dns');
+
+// Render gibi IPv6 desteği sorunlu sunucularda SMTP'nin IPv4 kullanmasını zorluyoruz.
+dns.setDefaultResultOrder('ipv4first');
 
 // Şifremi Unuttum (Mail Gönderme)
 const forgotPassword = async (req, res) => {
