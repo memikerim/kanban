@@ -78,6 +78,13 @@ const deleteProject = async (req, res) => {
         }
 
         await prisma.project.delete({ where: { id: parseInt(id) } });
+
+        // Eğer çalışma alanına ait bir projeyse, o alanı da anlık güncelle
+        if (project.workspaceId) {
+            const io = req.app.get('io');
+            if (io) io.to(`workspace_${project.workspaceId}`).emit('workspace_updated');
+        }
+
         res.json({ message: "Proje başarıyla silindi." });
     } catch (error) {
         console.error('Proje silinirken hata:', error);

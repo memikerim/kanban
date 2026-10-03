@@ -144,6 +144,40 @@ export default function Board() {
     }
   }, [currentProjectId]);
 
+  // YENİ: Workspace anlık güncellemeleri dinleme (Proje ekleme/silme için)
+  useEffect(() => {
+    const handleWorkspaceUpdated = async () => {
+      try {
+        const wsResponse = await api.get('/workspaces');
+        if (Array.isArray(wsResponse.data)) {
+          setWorkspaces(wsResponse.data);
+          
+          if (currentWorkspaceId) {
+             const updatedWs = wsResponse.data.find(w => w.id === currentWorkspaceId);
+             if (updatedWs) {
+               setProjects(updatedWs.projects || []);
+             }
+          }
+        }
+      } catch (error) {
+        console.error("Workspace güncellenirken hata:", error);
+      }
+    };
+
+    socket.on('workspace_updated', handleWorkspaceUpdated);
+
+    return () => {
+      socket.off('workspace_updated', handleWorkspaceUpdated);
+    };
+  }, [currentWorkspaceId]);
+
+  useEffect(() => {
+    if (workspaces.length > 0) {
+      if (!socket.connected) socket.connect();
+      workspaces.forEach(ws => socket.emit('join_workspace', ws.id));
+    }
+  }, [workspaces.map(w => w.id).join(',')]);
+
   // Workspace'leri çek
   const fetchWorkspaces = async () => {
     try {

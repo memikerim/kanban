@@ -227,6 +227,10 @@ const addProjectToWorkspace = async (req, res) => {
             include: { user: { select: { name: true } } }
         });
 
+        // Diğer kullanıcılara anlık güncelleme gönder
+        const io = req.app.get('io');
+        if (io) io.to(`workspace_${workspaceId}`).emit('workspace_updated');
+
         res.status(201).json(newProject);
     } catch (error) {
         console.error('Workspace projesi eklenirken hata:', error);

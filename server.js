@@ -33,6 +33,11 @@ io.on('connection', (socket) => {
         console.log(`Socket ${socket.id}, project_${projectId} odasına katıldı.`);
     });
 
+    socket.on('join_workspace', (workspaceId) => {
+        socket.join(`workspace_${workspaceId}`);
+        console.log(`Socket ${socket.id}, workspace_${workspaceId} odasına katıldı.`);
+    });
+
     socket.on('disconnect', () => {
         console.log('Kullanıcı ayrıldı:', socket.id);
     });
