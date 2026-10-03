@@ -95,16 +95,17 @@ body { background-color: #0079bf; color: #333; display: flex; flex-direction: co
     gap: 15px;
   }
 
-  /* Kanban Sütunları telefonda sağa-sola kaydırılabilsin */
+  /* Kanban Sütunları telefonda alt alta (dikey) sıralansın */
   .columns-container {
-    overflow-x: auto !important;
-    padding-bottom: 15px;
-    /* Kaydırma çubuğunu gizleme/güzelleştirme (opsiyonel) */
-    -webkit-overflow-scrolling: touch;
+    flex-direction: column !important;
+    overflow-x: hidden !important;
+    align-items: stretch !important;
   }
 
-  /* Sütunların telefonda sıkışmasını engelle */
+  /* Sütunlar telefonda tüm ekran genişliğini kaplasın ve aralarında boşluk olsun */
   .column {
-    min-width: 280px !important; 
+    width: 100% !important;
+    min-width: 100% !important;
+    margin-bottom: 20px;
   }
 }
