@@ -347,6 +347,45 @@ export default function Board() {
     }
   };
 
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file || !editingTask) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      showToast('Dosya yükleniyor...', 'info');
+      const res = await api.post(`/tasks/${editingTask.id}/attachments`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      
+      setEditingTask(prev => ({
+        ...prev,
+        attachments: [...(prev.attachments || []), res.data]
+      }));
+      showToast('Dosya yüklendi!', 'success');
+      await fetchBoardData();
+    } catch (error) {
+      showToast('Dosya yüklenemedi.', 'error');
+    }
+  };
+
+  const handleDeleteAttachment = async (attachmentId) => {
+    if (!editingTask) return;
+    try {
+      await api.delete(`/tasks/${editingTask.id}/attachments/${attachmentId}`);
+      setEditingTask(prev => ({
+        ...prev,
+        attachments: prev.attachments.filter(a => a.id !== attachmentId)
+      }));
+      showToast('Dosya silindi.', 'success');
+      await fetchBoardData();
+    } catch (error) {
+      showToast('Dosya silinemedi.', 'error');
+    }
+  };
+
   const onDragEnd = async (result) => {
     const { source, destination } = result;
     if (!destination) return;
@@ -716,6 +755,9 @@ export default function Board() {
                                     {task.description && (
                                       <small style={{ color: '#5e6c84', fontSize: '11px' }}>📝 Açıklama</small>
                                     )}
+                                    {task.attachments && task.attachments.length > 0 && (
+                                      <small style={{ color: '#5e6c84', fontSize: '11px' }}>📎 {task.attachments.length}</small>
+                                    )}
                                   </div>
                                   
                                   {task.user && (
@@ -813,6 +855,39 @@ export default function Board() {
                   style={{ padding: '5px', borderRadius: '4px', border: '1px solid #dfe1e6' }}
                 />
               </label>
+            </div>
+
+            {/* YENİ: DOSYA YÜKLEME VE EKLENTİLER */}
+            <div style={{ borderTop: '1px solid #dfe1e6', paddingTop: '10px', marginTop: '5px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                <h4 style={{ margin: 0, fontSize: '14px', color: '#172b4d' }}>📎 Eklentiler</h4>
+                <label style={{ cursor: 'pointer', background: '#e4f0f6', color: '#0079bf', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold' }}>
+                  Dosya Yükle
+                  <input type="file" style={{ display: 'none' }} onChange={handleFileUpload} />
+                </label>
+              </div>
+
+              {editingTask.attachments && editingTask.attachments.length > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '150px', overflowY: 'auto' }}>
+                  {editingTask.attachments.map(att => (
+                    <div key={att.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', padding: '8px', borderRadius: '4px', border: '1px solid #ebecf0' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+                        {['jpg', 'jpeg', 'png', 'gif'].includes(att.format?.toLowerCase()) ? (
+                          <img src={att.url} alt="Önizleme" style={{ width: '30px', height: '30px', objectFit: 'cover', borderRadius: '4px' }} />
+                        ) : (
+                          <span style={{ fontSize: '16px' }}>📄</span>
+                        )}
+                        <a href={att.url} target="_blank" rel="noreferrer" style={{ fontSize: '12px', color: '#0052cc', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {att.originalName || 'Dosya'}
+                        </a>
+                      </div>
+                      <button onClick={() => handleDeleteAttachment(att.id)} style={{ background: 'transparent', border: 'none', color: '#ff5630', cursor: 'pointer', fontWeight: 'bold' }}>✖</button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p style={{ margin: 0, fontSize: '12px', color: '#5e6c84' }}>Henüz dosya eklenmemiş.</p>
+              )}
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>

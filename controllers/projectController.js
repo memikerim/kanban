@@ -96,7 +96,10 @@ const getProjectBoard = async (req, res) => {
           include: {
             tasks: {
               orderBy: { order: 'asc' },
-              include: { user: { select: { name: true } } } // YENİ: Görevi ekleyeni getir
+              include: { 
+                  user: { select: { name: true } },
+                  attachments: true // YENİ: Görev dosyalarını da getir
+              } 
             }
           }
         }

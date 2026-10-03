@@ -127,4 +127,80 @@ const updateTaskOrder = async (req, res) => {
     }
 };
 
-module.exports = { createTask, updateTaskDetails, deleteTask, updateTaskOrder };
+const uploadAttachment = async (req, res) => {
+    try {
+        const { id } = req.params; // taskId
+        const file = req.file;
+
+        if (!file) {
+            return res.status(400).json({ error: 'Dosya yüklenemedi' });
+        }
+
+        const task = await prisma.task.findUnique({ where: { id: parseInt(id) } });
+        if (!task) {
+            return res.status(404).json({ error: 'Görev bulunamadı' });
+        }
+
+        // Cloudinary yüklemesinden dönen URL ve public_id
+        const attachment = await prisma.attachment.create({
+            data: {
+                url: file.path, // Cloudinary URL'i
+                public_id: file.filename, // Cloudinary public_id
+                format: file.originalname.split('.').pop() || 'unknown',
+                originalName: file.originalname,
+                taskId: parseInt(id)
+            }
+        });
+
+        // Log ekleyelim
+        const user = await prisma.user.findUnique({ where: { id: req.user.userId } });
+        await logActivity(`"${task.title}" görevine dosya (${file.originalname}) ekledi.`, task.projectId, req.user.userId);
+
+        // Socket.io board güncellemesi
+        const io = req.app.get('io');
+        if (io) io.to(`project_${task.projectId}`).emit('board_updated');
+
+        res.status(201).json(attachment);
+    } catch (error) {
+        console.error('Dosya yüklenirken hata:', error);
+        res.status(500).json({ error: 'Dosya yüklenemedi' });
+    }
+};
+
+const deleteAttachment = async (req, res) => {
+    try {
+        const { id, attachmentId } = req.params;
+        
+        const attachment = await prisma.attachment.findUnique({
+            where: { id: parseInt(attachmentId) },
+            include: { task: true }
+        });
+
+        if (!attachment) {
+            return res.status(404).json({ error: 'Dosya bulunamadı' });
+        }
+
+        // Cloudinary'den silme işlemi için config'i içe aktarabiliriz ama 
+        // cloudinary paketi ile de direkt silebiliriz.
+        const { cloudinary } = require('../config/cloudinary');
+        await cloudinary.uploader.destroy(attachment.public_id);
+
+        await prisma.attachment.delete({
+            where: { id: parseInt(attachmentId) }
+        });
+
+        // Log
+        await logActivity(`"${attachment.task.title}" görevinden bir dosyayı sildi.`, attachment.task.projectId, req.user.userId);
+
+        // Socket.io
+        const io = req.app.get('io');
+        if (io) io.to(`project_${attachment.task.projectId}`).emit('board_updated');
+
+        res.json({ message: 'Dosya başarıyla silindi' });
+    } catch (error) {
+        console.error('Dosya silinirken hata:', error);
+        res.status(500).json({ error: 'Dosya silinemedi' });
+    }
+};
+
+module.exports = { createTask, updateTaskDetails, deleteTask, updateTaskOrder, uploadAttachment, deleteAttachment };

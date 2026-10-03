@@ -92,6 +92,21 @@ model Task {
   // --- Yeni Eklenen: Görevi Kimin Oluşturduğu ---
   userId      Int?      
   user        User?     @relation(fields: [userId], references: [id])
+
+  // --- Yeni Eklenen: Dosya Yüklemeleri (Cloudinary) ---
+  attachments Attachment[]
+}
+
+// --- YENİ: Görevlere Yüklenen Dosyalar (Cloudinary) ---
+model Attachment {
+  id        Int      @id @default(autoincrement())
+  url       String   // Cloudinary'deki dosya URL'i
+  public_id String   // Silme işlemi için Cloudinary public_id
+  format    String?  // png, pdf, docx vs. (frontend'de ikon göstermek için)
+  originalName String? // Kullanıcının yüklediği orijinal dosya adı
+  taskId    Int
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
 }
 
 //  Projedeki Son Değişiklikler (Hareket Dökümü) Tablosu ---
