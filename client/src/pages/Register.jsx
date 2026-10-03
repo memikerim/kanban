@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../api/axios';
 
@@ -8,15 +8,29 @@ export default function Register() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   
+  // Robot kontrolü (6 haneli kod)
+  const [captchaCode, setCaptchaCode] = useState('');
+  const [userCaptchaInput, setUserCaptchaInput] = useState('');
+  
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   
   const navigate = useNavigate();
 
+  useEffect(() => {
+    // Sayfa yüklendiğinde 6 haneli rastgele bir kod oluştur
+    setCaptchaCode(Math.floor(100000 + Math.random() * 900000).toString());
+  }, []);
+
   const handleRegister = async (e) => {
     e.preventDefault();
     setErrorMessage('');
     setSuccessMessage('');
+
+    // Robot doğrulama kontrolü
+    if (userCaptchaInput !== captchaCode) {
+      return setErrorMessage("Robot kontrol kodu hatalı. Lütfen tekrar deneyin.");
+    }
 
     // Şifre doğrulama kontrolü
     if (password !== confirmPassword) {
@@ -120,6 +134,26 @@ export default function Register() {
           {confirmPassword && password === confirmPassword && confirmPassword.length >= 6 && (
             <small style={{ color: '#36B37E', fontSize: '12px', marginTop: '-10px' }}>✓ Şifreler eşleşiyor</small>
           )}
+
+          {/* Robot Kontrolü Alanı */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', background: '#f4f5f7', padding: '12px', borderRadius: '4px', border: '1px solid #dfe1e6' }}>
+            <span style={{ fontSize: '13px', color: '#172b4d', fontWeight: 'bold' }}>Robot Kontrolü</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ background: '#091e42', color: 'white', padding: '8px 15px', borderRadius: '4px', fontSize: '18px', fontWeight: 'bold', letterSpacing: '2px', userSelect: 'none' }}>
+                {captchaCode}
+              </div>
+              <input 
+                type="text" 
+                placeholder="Yandaki kodu girin" 
+                value={userCaptchaInput} 
+                onChange={(e) => setUserCaptchaInput(e.target.value)} 
+                required 
+                maxLength="6"
+                style={{ padding: '10px', borderRadius: '4px', border: '1px solid #dfe1e6', fontSize: '14px', flex: 1 }}
+              />
+            </div>
+          </div>
+
           <button 
             type="submit" 
             style={{ padding: '12px', backgroundColor: '#5aac44', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '15px' }}
