@@ -488,7 +488,7 @@ export default function Board() {
         </div>
       )}
 
-      <aside className="sidebar" style={{ overflowY: 'auto' }}>
+      <aside className={`sidebar ${currentProjectId ? 'hidden-mobile' : ''}`} style={{ overflowY: 'auto' }}>
         {/* ÇALIŞMA ALANLARI */}
         <h3 style={{ fontSize: '14px', marginBottom: '5px' }}>🏢 Çalışma Alanları</h3>
         <ul>
@@ -585,10 +585,19 @@ export default function Board() {
         </div>
       </aside>
 
-      <main className="board">
+      <main className={`board ${!currentProjectId ? 'hide-main-on-mobile' : ''}`}>
         <header className="board-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           
-          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap' }}>
+            {currentProjectId && (
+              <button 
+                onClick={() => setCurrentProjectId(null)}
+                className="back-btn-mobile"
+                style={{ padding: '6px 12px', background: '#fdcb6e', color: '#2d3436', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}
+              >
+                ⬅ Projelere Dön
+              </button>
+            )}
             <h2>{currentProjectId ? 'Proje Görevleri' : 'Kanban Panosu'}</h2>
             {currentProjectId && (
               <button 

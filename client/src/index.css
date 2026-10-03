@@ -49,7 +49,15 @@ body { background-color: #0079bf; color: #333; display: flex; flex-direction: co
 .task-list { min-height: 50px; flex-grow: 1; }
 
 /* --- MOBİL UYUMLULUK (RESPONSIVE DESIGN) --- */
+.back-btn-mobile {
+  display: none !important;
+}
+
 @media (max-width: 768px) {
+  .back-btn-mobile {
+    display: block !important;
+  }
+  
   .app-container {
     flex-direction: column !important;
   }
@@ -60,6 +68,24 @@ body { background-color: #0079bf; color: #333; display: flex; flex-direction: co
     min-height: auto !important;
     border-right: none !important;
     border-bottom: 1px solid #dfe1e6;
+  }
+  
+  /* Telefondan projeye girilmediyse (menüdeysek) sağdaki boş pano kısmını gizle */
+  .board.hide-main-on-mobile {
+    display: none !important;
+  }
+  
+  /* Telefondan projeye girildiğinde sol menüyü gizle */
+  .sidebar.hidden-mobile {
+    display: none !important;
+  }
+
+  /* Butonları mobilde küçült ve sığdır */
+  .mobile-header-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
   }
 
   /* Pano başlığı telefonda alt alta gelsin */
