@@ -122,7 +122,7 @@ const forgotPassword = async (req, res) => {
         res.status(200).json({ message: "Şifre sıfırlama bağlantısı e-posta adresinize gönderildi." });
     } catch (error) {
         console.error("Şifre sıfırlama maili hatası:", error);
-        res.status(500).json({ error: "E-posta gönderilirken bir hata oluştu. Sunucu ayarlarını (EMAIL_USER) kontrol edin." });
+        res.status(500).json({ error: "E-posta gönderilemedi. Hata Detayı: " + (error.message || "Bilinmeyen hata") });
     }
 };
 
