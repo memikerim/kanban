@@ -58,12 +58,6 @@ const login = async (req, res) => {
     }
 };
 
-const nodemailer = require('nodemailer');
-const dns = require('dns');
-
-// Render gibi IPv6 desteği sorunlu sunucularda SMTP'nin IPv4 kullanmasını zorluyoruz.
-dns.setDefaultResultOrder('ipv4first');
-
 // Şifremi Unuttum (Mail Gönderme)
 const forgotPassword = async (req, res) => {
     try {
@@ -85,43 +79,62 @@ const forgotPassword = async (req, res) => {
         const frontendUrl = req.headers.origin || 'https://kanban-t778.onrender.com';
         const resetLink = `${frontendUrl}/#/reset-password/${resetToken}`;
 
-        if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-            console.error("Sunucu Hatası: EMAIL_USER veya EMAIL_PASS çevresel değişkenleri tanımlanmamış.");
-            return res.status(500).json({ error: "Sunucu e-posta göndermek için yapılandırılmamış (Ayarlar eksik)." });
+        if (!process.env.BREVO_API_KEY || !process.env.EMAIL_USER) {
+            console.error("Sunucu Hatası: BREVO_API_KEY veya EMAIL_USER tanımlanmamış.");
+            return res.status(500).json({ error: "Sunucu e-posta göndermek için yapılandırılmamış." });
         }
 
-        // Mail gönderimi için ayarlar (Gmail için)
-        const transporter = nodemailer.createTransport({
-            host: 'smtp.gmail.com',
-            port: 465,
-            secure: true, // SSL kullan
-            auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS
-            },
-            connectionTimeout: 10000, // 10 saniye içinde bağlanamazsa hata ver
-            greetingTimeout: 10000,
-            socketTimeout: 10000
+        const https = require('https');
+
+        const htmlContent = `
+            <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #dfe1e6; border-radius: 8px;">
+                <h3 style="color: #172b4d;">Şifre Sıfırlama Talebi</h3>
+                <p style="color: #5e6c84;">Merhaba ${user.name},</p>
+                <p style="color: #5e6c84;">Hesabınızın şifresini sıfırlamak için bir talep aldık. Şifrenizi yenilemek için aşağıdaki butona tıklayın:</p>
+                <div style="text-align: center; margin: 20px 0;">
+                    <a href="${resetLink}" style="background-color: #0052cc; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold; display: inline-block;">Şifremi Sıfırla</a>
+                </div>
+                <p style="color: #5e6c84; font-size: 13px;">Bu bağlantı 15 dakika boyunca geçerlidir. Eğer bu talebi siz yapmadıysanız lütfen bu e-postayı görmezden gelin.</p>
+            </div>
+        `;
+
+        const payload = JSON.stringify({
+            sender: { name: 'Kanban Destek', email: process.env.EMAIL_USER },
+            to: [{ email: user.email }],
+            subject: 'Kanban - Şifre Sıfırlama Talebi',
+            htmlContent: htmlContent
         });
 
-        const mailOptions = {
-            from: `"Kanban Destek" <${process.env.EMAIL_USER}>`,
-            to: user.email,
-            subject: 'Kanban - Şifre Sıfırlama Talebi',
-            html: `
-                <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #dfe1e6; border-radius: 8px;">
-                    <h3 style="color: #172b4d;">Şifre Sıfırlama Talebi</h3>
-                    <p style="color: #5e6c84;">Merhaba ${user.name},</p>
-                    <p style="color: #5e6c84;">Hesabınızın şifresini sıfırlamak için bir talep aldık. Şifrenizi yenilemek için aşağıdaki butona tıklayın:</p>
-                    <div style="text-align: center; margin: 20px 0;">
-                        <a href="${resetLink}" style="background-color: #0052cc; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold; display: inline-block;">Şifremi Sıfırla</a>
-                    </div>
-                    <p style="color: #5e6c84; font-size: 13px;">Bu bağlantı 15 dakika boyunca geçerlidir. Eğer bu talebi siz yapmadıysanız lütfen bu e-postayı görmezden gelin.</p>
-                </div>
-            `
+        const options = {
+            hostname: 'api.brevo.com',
+            port: 443,
+            path: '/v3/smtp/email',
+            method: 'POST',
+            headers: {
+                'accept': 'application/json',
+                'api-key': process.env.BREVO_API_KEY,
+                'content-type': 'application/json',
+                'content-length': Buffer.byteLength(payload)
+            }
         };
 
-        await transporter.sendMail(mailOptions);
+        await new Promise((resolve, reject) => {
+            const reqHttp = https.request(options, (resHttp) => {
+                let responseBody = '';
+                resHttp.on('data', (chunk) => { responseBody += chunk; });
+                resHttp.on('end', () => {
+                    if (resHttp.statusCode >= 200 && resHttp.statusCode < 300) {
+                        resolve(responseBody);
+                    } else {
+                        reject(new Error(`HTTP ${resHttp.statusCode}: ${responseBody}`));
+                    }
+                });
+            });
+
+            reqHttp.on('error', (e) => reject(e));
+            reqHttp.write(payload);
+            reqHttp.end();
+        });
 
         res.status(200).json({ message: "Şifre sıfırlama bağlantısı e-posta adresinize gönderildi." });
     } catch (error) {
