@@ -1,33 +1,31 @@
 # 🚀 Kanban Workspace Desktop App (Trello Clone)
 
-Tam yığın (Full-Stack) mimari ile geliştirilmiş, bulut tabanlı, güvenli ve "Multi-tenant" (Çoklu Kiracı/Çalışma Alanı) yapısına sahip masaüstü proje yönetim uygulaması. 
+Tam yığın (Full-Stack) mimari ile geliştirilmiş, bulut tabanlı, gerçek zamanlı (real-time) senkronizasyona ve "Multi-tenant" (Çoklu Kiracı/Çalışma Alanı) yapısına sahip masaüstü proje yönetim uygulaması. 
 
-Kullanıcılar şifre korumalı çalışma alanları (Workspaces) oluşturabilir, ekiplere katılabilir ve Kanban metodolojisiyle görevlerini gerçek zamanlı olarak yönetebilirler.
+Kullanıcılar şifre korumalı çalışma alanları oluşturabilir, ekiplere katılabilir, görevlerine dosya/görsel ekleyebilir ve Kanban metodolojisiyle kartlarını yönetirken tüm takım arkadaşlarının ekranında anlık olarak senkronize olabilirler.
 
 ## 🛠️ Teknoloji Yığını (Tech Stack)
 
-- **Masaüstü İstemci:** Electron.js, HTML/CSS/JS, Axios
-- **Backend API:** Node.js, Express.js
+- **Masaüstü İstemci:** Electron.js, HTML/CSS/JS, Axios, Socket.io-client
+- **Backend API:** Node.js, Express.js, Socket.io
 - **Veritabanı & ORM:** PostgreSQL, Prisma ORM
+- **Bulut Dosya Yönetimi:** Cloudinary, Multer
 - **Güvenlik:** JSON Web Token (JWT), Bcrypt.js, Express-Rate-Limit, Helmet
 - **Bulut Altyapısı (Deploy):** Render.com (API Servisi), Neon.tech (PostgreSQL)
 
 ## ✨ Temel Özellikler
 
+- **⚡ Gerçek Zamanlı (Real-Time) Senkronizasyon:** Socket.io entegrasyonu sayesinde, bir ekip üyesi görev kartını başka bir kolona taşıdığında veya güncellediğinde, aynı çalışma alanındaki diğer tüm üyelerin ekranı anında (sayfa yenilenmeden) güncellenir.
+- **📎 Bulut Tabanlı Dosya Yükleme:** Görev (Task) detaylarına Cloudinary ve Multer altyapısı kullanılarak resim ve dosya (attachment) eklenebilir.
 - **🏢 Çalışma Alanı (Workspace) Mimarisi:** 
   * Şifre korumalı yeni çalışma alanları oluşturma.
-  * Çalışma alanı ID'si ve şifresi ile mevcut ekiplere katılma.
+  * ID ve şifre ile mevcut ekiplere katılma.
   * Admin (Yönetici) yetkisiyle çalışma alanından üye çıkarma (Kick) yönetimi.
-- **📋 Gelişmiş Kanban Panosu:** Çalışma alanlarına özel projeler oluşturma ve görevleri (Task) sürükle-bırak mantığıyla kolonlar arasında taşıma.
-- **🔒 Üst Düzey Güvenlik:** 
-  * Şifrelerin veritabanında kırılamaz şekilde (Bcrypt ile) tutulması.
-  * Kaba kuvvet (Brute-Force) saldırılarına karşı `express-rate-limit` ile API istek sınırlandırması.
-  * `helmet` ile HTTP başlık güvenliği.
-  * JWT tabanlı güvenli oturum yönetimi.
-- **☁️ Bulut Entegrasyonu:** Masaüstü istemci, arka planda Render.com üzerinde çalışan API ile haberleşir; veriler Neon.tech PostgreSQL sunucularında güvenle saklanır.
+- **📋 Gelişmiş Kanban Panosu:** Sürükle-bırak mantığıyla çalışan dinamik proje ve görev yönetimi.
+- **🔒 Üst Düzey Güvenlik:** Bcrypt şifreleme, Brute-Force koruması (`express-rate-limit`), HTTP başlık güvenliği (`helmet`) ve JWT tabanlı güvenli oturum yönetimi.
 - **💻 Bağımsız Masaüstü Deneyimi:** Kurulum veya terminal bilgisi gerektirmeyen, doğrudan çalıştırılabilir `.exe` formatı.
 
-> 💡 **Not:** Ücretsiz bulut sunucu (Render) kullanıldığı için, uzun süreli inaktif durumların ardından uygulamanın ilk açılışı (sunucunun başlatılması) 30-40 saniye sürebilir.
+> 💡 **Not:** Ücretsiz bulut sunucu (Render) kullanıldığı için, uzun süreli inaktif durumların ardından uygulamanın ilk açılışı (sunucunun baştan başlatılması) 30-40 saniye sürebilir.
 
 ---
 
@@ -35,12 +33,14 @@ Kullanıcılar şifre korumalı çalışma alanları (Workspaces) oluşturabilir
 
 Bu proje, sıfırdan canlıya alınma sürecine kadar net bir mühendislik planı çerçevesinde aşağıdaki aşamalarla geliştirilmiştir:
 
-1. **Veritabanı Mimarisi:** PostgreSQL ve Prisma ORM kullanılarak ilişkisel veritabanı (Kullanıcı, Çalışma Alanı, Proje, Görev vb.) şemalarının tasarlanması ve buluta taşınması.
-2. **Backend API Geliştirme:** Node.js ve Express.js ile iş mantığının kurulması ve RESTful API uç noktalarının (CRUD işlemleri) oluşturulması.
-3. **Masaüstü Arayüz Entegrasyonu:** Electron.js kullanılarak web teknolojilerinin masaüstü ortamına entegre edilmesi ve API ile haberleştirilmesi (Axios).
-4. **Güvenlik Katmanı:** Bcrypt ile şifre kriptolama, JWT ile yetkilendirme, `helmet` ile HTTP koruması ve `express-rate-limit` ile kaba kuvvet (brute-force) saldırı korumasının uygulanması.
-5. **Bulut Entegrasyonu (Deploy):** Yerel veritabanının Neon.tech'e, backend sunucusunun ise Render.com'a taşınarak uygulamanın tamamen internete açılması.
-6. **Uygulama Paketleme (Build):** Electron kullanılarak projenin son kullanıcılar için bağımsız çalışabilen bir Windows `.exe` dosyası formatına dönüştürülmesi.
+1. **Veritabanı Mimarisi:** PostgreSQL ve Prisma ORM ile ilişkisel veritabanı şemalarının (Kullanıcı, Workspace, Proje, Görev, Eklenti) tasarlanması.
+2. **Backend API Geliştirme:** Node.js ve Express.js ile RESTful API uç noktalarının oluşturulması.
+3. **Masaüstü Arayüz Entegrasyonu:** Electron.js ile web teknolojilerinin bağımsız bir masaüstü yazılımına dönüştürülmesi.
+4. **Güvenlik Katmanı:** Bcrypt, JWT, Helmet ve Rate-Limit ile sistem güvenliğinin sağlanması.
+5. **Bulut Entegrasyonu (Deploy):** Veritabanının Neon.tech'e, backend'in Render.com'a taşınması.
+6. **Gerçek Zamanlı İletişim:** Socket.io entegrasyonu ile workspace (oda) bazlı anlık veri senkronizasyonunun kurulması.
+7. **Dosya Yönetimi:** Multer ve Cloudinary API kullanılarak sisteme güvenli dosya/medya yükleme özelliğinin eklenmesi.
+8. **Uygulama Paketleme (Build):** Electron kullanılarak uygulamanın son kullanıcılar için Windows `.exe` dosyası formatında derlenmesi.
 
 ---
 
@@ -50,7 +50,7 @@ Projeyi kendi ortamınızda geliştirmek veya incelemek isterseniz aşağıdaki 
 
 ### 1. Depoyu Klonlayın
 ```bash
-git clone https://github.com/memikerim/kanban.git
+git clone [https://github.com/memikerim/kanban.git](https://github.com/memikerim/kanban.git)
 cd kanban
 ```
 
@@ -63,11 +63,19 @@ cd ..
 ```
 
 ### 3. Çevresel Değişkenleri (.env) Ayarlayın
-Ana dizinde bir `.env` dosyası oluşturun ve aşağıdaki şablonu kendi bilgilerinizle doldurun:
+Ana dizinde bir `.env` dosyası oluşturun ve aşağıdaki şablonu kendi bilgilerinizle doldurun (Veritabanı için Neon.tech, Dosya yükleme için Cloudinary kullanılmaktadır):
 ```env
+# Veritabanı Ayarları
 DATABASE_URL="postgresql://kullanici:sifre@sunucu_adresi/veritabani_adi?sslmode=require"
+
+# Güvenlik Ayarları
 JWT_SECRET="kendi_gizli_anahtarinizi_belirleyin"
 PORT=3000
+
+# Dosya Yükleme Ayarları (Cloudinary)
+CLOUDINARY_CLOUD_NAME="cloud_adiniz"
+CLOUDINARY_API_KEY="api_anahtariniz"
+CLOUDINARY_API_SECRET="api_gizli_anahtariniz"
 ```
 
 ### 4. Veritabanını Senkronize Edin
