@@ -4,6 +4,13 @@ import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import useAuthStore from '../store/useAuthStore';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import { io } from 'socket.io-client'; // YENİ: Socket.io istemcisi
+
+// YENİ: Sunucu ile socket bağlantısını kur
+// React state değiştiğinde bağlantının kopmaması için dışarıda tanımlamak iyidir.
+const socket = io('https://kanban-t778.onrender.com', {
+  autoConnect: false // Sadece bileşen yüklendiğinde bağlayacağız
+});
 
 export default function Board() {
   const [projects, setProjects] = useState([]);
@@ -115,6 +122,26 @@ export default function Board() {
 
   useEffect(() => {
     fetchBoardData();
+
+    // YENİ: Socket.io odasına katılma ve board_updated dinleme
+    if (currentProjectId) {
+      if (!socket.connected) {
+        socket.connect();
+      }
+      
+      socket.emit('join_project', currentProjectId);
+
+      const handleBoardUpdated = () => {
+        // Başka biri görev güncellediğinde sadece veriyi yeniden çekiyoruz (sayfa yenilenmez, sadece DOM güncellenir)
+        fetchBoardData();
+      };
+
+      socket.on('board_updated', handleBoardUpdated);
+
+      return () => {
+        socket.off('board_updated', handleBoardUpdated);
+      };
+    }
   }, [currentProjectId]);
 
   // Workspace'leri çek

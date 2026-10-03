@@ -34,6 +34,9 @@ const createTask = async (req, res) => {
         // Hareketi kaydet
         await logActivity(`"${title}" görevini ekledi.`, parseInt(projectId), parseInt(userId));
 
+        const io = req.app.get('io');
+        if (io) io.to(`project_${projectId}`).emit('board_updated');
+
         res.status(201).json(newTask);
     } catch (error) {
         console.error('Görev eklenirken hata:', error);
@@ -58,6 +61,9 @@ const updateTaskDetails = async (req, res) => {
 
         await logActivity(`"${updatedTask.title}" görevinin detaylarını güncelledi.`, task.projectId, parseInt(userId));
 
+        const io = req.app.get('io');
+        if (io) io.to(`project_${task.projectId}`).emit('board_updated');
+
         res.json(updatedTask);
     } catch (error) {
         console.error('Görev güncellenirken hata:', error);
@@ -76,6 +82,9 @@ const deleteTask = async (req, res) => {
 
         await logActivity(`"${task.title}" görevini sildi.`, task.projectId, parseInt(userId));
 
+        const io = req.app.get('io');
+        if (io) io.to(`project_${task.projectId}`).emit('board_updated');
+
         res.json({ message: 'Görev başarıyla silindi' });
     } catch (error) {
         console.error('Görev silinirken hata:', error);
@@ -87,15 +96,30 @@ const updateTaskOrder = async (req, res) => {
     const { updatedTasks } = req.body;
     // Sürükle-bırak işlemi çok sık yapıldığı için buraya bilerek log koymuyoruz, yoksa log ekranı spamlenir.
     try {
+        let projectId = null;
         for (const task of updatedTasks) {
-            await prisma.task.update({
+            const updated = await prisma.task.update({
                 where: { id: task.id },
                 data: {
                     columnId: parseInt(task.columnId),
                     order: task.order
                 }
             });
+            if (!projectId) projectId = updated.projectId;
         }
+
+        // Socket.io ile odadaki diğer kullanıcılara (kendisi hariç) board_updated sinyali gönder
+        if (projectId) {
+            const io = req.app.get('io');
+            if (io) {
+                // req.headers['socket-id'] ile göndereni de alabiliriz ama genellikle 
+                // doğrudan emit etmek herkesin (veya to(room) ile odanın) almasını sağlar.
+                // Eğer frontend tarafında optimistik güncelleme yapılıyorsa, 
+                // board_updated alan herkes fetchBoardData() yapabilir.
+                io.to(`project_${projectId}`).emit('board_updated');
+            }
+        }
+
         res.json({ message: 'Sıralama güncellendi' });
     } catch (error) {
         console.error('Sıralama güncellenirken hata:', error);
