@@ -48,13 +48,15 @@ app.use(helmet({
   contentSecurityPolicy: false, // Localhost/Render karışıklığını önlemek için kapatılabilir veya ayarlanabilir
 }));
 
-// Rate Limiter: Aynı IP'den 15 dakika içinde en fazla 100 istek atılmasına izin ver
+// Rate Limiter: Aynı IP'den 15 dakika içinde en fazla 1000 istek atılmasına izin ver
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 dakika
-  max: 100, // Limit
-  message: "Bu IP adresinden çok fazla istek yapıldı, lütfen daha sonra tekrar deneyin."
+  max: 1000, // Limit (socket.io gerçek zamanlı güncellemeler sık API çağrısı tetiklediği için yüksek tutuldu)
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Bu IP adresinden çok fazla istek yapıldı, lütfen daha sonra tekrar deneyin." }
 });
-app.use('/api', limiter); // Sadece API yollarına rate limiter uygulayalım (React uygulamasını engellememek için)
+app.use('/api', limiter); // Sadece API yollarına rate limiter uygulayalım
 
 // Mevcut Middleware'ler (Ara yazılımlar)
 app.use(cors());

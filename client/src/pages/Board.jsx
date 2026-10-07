@@ -152,11 +152,18 @@ export default function Board() {
         if (Array.isArray(wsResponse.data)) {
           setWorkspaces(wsResponse.data);
           
-          if (currentWorkspaceId) {
+          // Sadece sidebar'daki proje listesini güncelle, açık board'a dokunma
+          if (currentWorkspaceId && !currentProjectId) {
              const updatedWs = wsResponse.data.find(w => w.id === currentWorkspaceId);
              if (updatedWs) {
                setProjects(updatedWs.projects || []);
              }
+          } else if (currentWorkspaceId && currentProjectId) {
+            // Board açıkken sadece sidebar proje listesini güncelle (columns/tasks korunur)
+            const updatedWs = wsResponse.data.find(w => w.id === currentWorkspaceId);
+            if (updatedWs) {
+              setProjects(updatedWs.projects || []);
+            }
           }
         }
       } catch (error) {
@@ -169,7 +176,7 @@ export default function Board() {
     return () => {
       socket.off('workspace_updated', handleWorkspaceUpdated);
     };
-  }, [currentWorkspaceId]);
+  }, [currentWorkspaceId, currentProjectId]);
 
   useEffect(() => {
     if (workspaces.length > 0) {
@@ -270,15 +277,13 @@ export default function Board() {
   const handleAddWsProject = async () => {
     if (!newProjectName || !currentWorkspaceId) return;
     try {
-      await api.post('/workspaces/project', { workspaceId: currentWorkspaceId, name: newProjectName });
+      const response = await api.post('/workspaces/project', { workspaceId: currentWorkspaceId, name: newProjectName });
       setNewProjectName('');
-      // Workspace verilerini yeniden çek ve projeleri güncelle
-      const wsResponse = await api.get('/workspaces');
-      if (Array.isArray(wsResponse.data)) {
-        setWorkspaces(wsResponse.data);
-        const updatedWs = wsResponse.data.find(w => w.id === currentWorkspaceId);
-        if (updatedWs) setProjects(updatedWs.projects || []);
-      }
+      // Yeni projeyi mevcut listeye ekle (gereksiz API çağrısı yapmadan)
+      const newProject = response.data;
+      setProjects(prev => [...prev, newProject]);
+      // Workspace listesini de güncelle
+      await fetchWorkspaces();
     } catch (error) {
       showToast(error.response?.data?.error || "Proje eklenemedi.", "error");
     }
