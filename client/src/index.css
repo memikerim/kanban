@@ -61,6 +61,10 @@ body { background-color: #0079bf; color: #333; display: flex; flex-direction: co
   display: none !important;
 }
 
+.task-quick-move-buttons {
+  display: flex !important;
+}
+
 @media (max-width: 768px) {
   .back-btn-mobile {
     display: block !important;
@@ -72,6 +76,10 @@ body { background-color: #0079bf; color: #333; display: flex; flex-direction: co
 
   .mobile-guide-btn {
     display: inline-block !important;
+  }
+
+  .task-quick-move-buttons {
+    display: none !important;
   }
   
   .desktop-user-menu {

@@ -444,6 +444,54 @@ export default function Board() {
     }
   };
 
+  // Masaüstü için tek tıkla sütun değiştirme fonksiyonu (Socket.io senkronizasyonlu)
+  const handleMoveTaskDirect = async (taskId, targetColumnId, e) => {
+    if (e) e.stopPropagation();
+
+    const newColumns = Array.from(columns);
+    let sourceColIndex = -1;
+    let targetColIndex = -1;
+    let taskToMove = null;
+
+    for (let i = 0; i < newColumns.length; i++) {
+      const taskIndex = newColumns[i].tasks?.findIndex(t => t.id === taskId);
+      if (taskIndex !== undefined && taskIndex !== -1) {
+        sourceColIndex = i;
+        const tasks = Array.from(newColumns[i].tasks);
+        [taskToMove] = tasks.splice(taskIndex, 1);
+        newColumns[i] = { ...newColumns[i], tasks };
+        break;
+      }
+    }
+
+    targetColIndex = newColumns.findIndex(c => c.id === targetColumnId);
+    if (!taskToMove || targetColIndex === -1 || sourceColIndex === targetColIndex) return;
+
+    // Hedef sütuna ekle (en alta)
+    const targetTasks = Array.from(newColumns[targetColIndex].tasks || []);
+    targetTasks.push(taskToMove);
+    newColumns[targetColIndex] = { ...newColumns[targetColIndex], tasks: targetTasks };
+
+    // Optimistik güncelleme
+    setColumns(newColumns);
+
+    const updatedTasks = [];
+    newColumns[targetColIndex].tasks.forEach((task, index) => {
+      updatedTasks.push({ id: task.id, columnId: targetColumnId, order: index });
+    });
+    newColumns[sourceColIndex].tasks.forEach((task, index) => {
+      updatedTasks.push({ id: task.id, columnId: newColumns[sourceColIndex].id, order: index });
+    });
+
+    try {
+      await api.put('/tasks/reorder', { updatedTasks });
+      await fetchBoardData();
+    } catch (error) {
+      console.error('Görev taşınırken hata oluştu:', error);
+      await fetchBoardData();
+    }
+  };
+
   const onDragEnd = async (result) => {
     const { source, destination } = result;
     if (!destination) return;
@@ -788,7 +836,9 @@ export default function Board() {
           <DragDropContext onDragEnd={onDragEnd}>
             <div className="columns-container" style={{ display: 'flex', gap: '20px', alignItems: 'flex-start' }}>
               
-              {columns.map((column) => (
+              {columns.map((column) => {
+                const isDoneColumn = column.title?.toLowerCase().trim() === 'tamamlandı';
+                return (
                 <div key={column.id} className="column" style={{ background: '#ebecf0', padding: '10px', width: '280px', borderRadius: '5px' }}>
                   <h2 style={{ fontSize: '16px', margin: '0 0 10px 0', color: '#172b4d' }}>{column.title}</h2>
                   
@@ -812,19 +862,28 @@ export default function Board() {
                                   userSelect: 'none',
                                   padding: '12px',
                                   margin: '0 0 8px 0',
-                                  backgroundColor: snapshot.isDragging ? '#e6fcff' : '#fff',
+                                  backgroundColor: snapshot.isDragging ? '#e6fcff' : (isDoneColumn ? '#f9fafb' : '#fff'),
                                   borderRadius: '4px',
                                   boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
                                   display: 'flex', 
                                   justifyContent: 'space-between', 
                                   alignItems: 'flex-start',
                                   cursor: 'pointer',
-                                  borderLeft: task.color ? `6px solid ${task.color}` : 'none', 
+                                  borderLeft: task.color ? `6px solid ${task.color}` : (isDoneColumn ? '6px solid #36b37e' : 'none'), 
                                   ...provided.draggableProps.style,
                                 }}
                               >
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%' }}>
-                                  <span style={{ wordBreak: 'break-word', paddingRight: '10px' }}>{task.title}</span>
+                                  <span style={{ 
+                                    wordBreak: 'break-word', 
+                                    paddingRight: '10px',
+                                    textDecoration: isDoneColumn ? 'line-through' : 'none',
+                                    color: isDoneColumn ? '#5e6c84' : '#172b4d',
+                                    opacity: isDoneColumn ? 0.8 : 1,
+                                    fontWeight: isDoneColumn ? 'normal' : '500'
+                                  }}>
+                                    {task.title}
+                                  </span>
                                   
                                   <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                                     {task.dueDate && (
@@ -841,10 +900,72 @@ export default function Board() {
                                   </div>
                                   
                                   {task.user && (
-                                    <small style={{ color: '#888', fontSize: '10px', marginTop: '4px', fontStyle: 'italic' }}>
+                                    <small style={{ color: '#888', fontSize: '10px', marginTop: '2px', fontStyle: 'italic' }}>
                                       Ekleyen: {task.user.name}
                                     </small>
                                   )}
+
+                                  {/* Masaüstü Hızlı Taşıma Butonları (Mobilde CSS ile gizlenir) */}
+                                  <div 
+                                    className="task-quick-move-buttons" 
+                                    style={{ 
+                                      display: 'flex', 
+                                      gap: '5px', 
+                                      flexWrap: 'wrap', 
+                                      marginTop: '8px', 
+                                      paddingTop: '6px', 
+                                      borderTop: '1px dashed #ebecf0' 
+                                    }}
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    {columns.filter(c => c.id !== column.id).map(targetCol => {
+                                      const isTargetDone = targetCol.title?.toLowerCase().trim() === 'tamamlandı';
+                                      const isTargetInProgress = targetCol.title?.toLowerCase().trim() === 'devam edenler';
+                                      
+                                      let btnBg = '#f4f5f7';
+                                      let btnColor = '#42526e';
+                                      let icon = '➔';
+                                      
+                                      if (isTargetDone) {
+                                        btnBg = '#e3fcef';
+                                        btnColor = '#006644';
+                                        icon = '✔';
+                                      } else if (isTargetInProgress) {
+                                        btnBg = '#deebff';
+                                        btnColor = '#0747a6';
+                                        icon = '⚡';
+                                      } else {
+                                        btnBg = '#f4f5f7';
+                                        btnColor = '#42526e';
+                                        icon = '⬅';
+                                      }
+
+                                      return (
+                                        <button
+                                          key={targetCol.id}
+                                          onClick={(e) => handleMoveTaskDirect(task.id, targetCol.id, e)}
+                                          title={`"${targetCol.title}" kısmına taşı`}
+                                          style={{
+                                            background: btnBg,
+                                            color: btnColor,
+                                            border: `1px solid ${isTargetDone ? '#abf5d1' : isTargetInProgress ? '#b3d4ff' : '#dfe1e6'}`,
+                                            borderRadius: '4px',
+                                            padding: '2px 7px',
+                                            fontSize: '11px',
+                                            fontWeight: 'bold',
+                                            cursor: 'pointer',
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '3px',
+                                            transition: 'all 0.15s ease'
+                                          }}
+                                        >
+                                          <span>{icon}</span>
+                                          <span>{targetCol.title}</span>
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
 
                                 </div>
                                 <button 
@@ -881,7 +1002,8 @@ export default function Board() {
                   </div>
 
                 </div>
-              ))}
+              );
+            })}
 
             </div>
           </DragDropContext>
