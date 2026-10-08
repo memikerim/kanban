@@ -799,7 +799,7 @@ export default function Board() {
       </aside>
 
       <main className={`board ${!currentProjectId ? 'hide-main-on-mobile' : ''}`}>
-        <header className="board-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <header className="board-header">
           
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
             {currentProjectId && (
@@ -831,7 +831,7 @@ export default function Board() {
             <ThemeToggle className="mobile-theme-btn" showLabel={false} />
           </div>
           
-          <div className="desktop-user-menu" style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+          <div className="desktop-user-menu">
             <div style={{ textAlign: 'right', lineHeight: '1.2' }}>
               <span style={{ display: 'block', fontSize: '14px', fontWeight: 'bold' }}>
                 Giriş yapıldı: {currentUser.name}
@@ -868,12 +868,12 @@ export default function Board() {
 
         {currentProjectId ? (
           <DragDropContext onDragEnd={onDragEnd}>
-            <div className="columns-container" style={{ display: 'flex', gap: '20px', alignItems: 'flex-start' }}>
+            <div className="columns-container">
               
               {columns.map((column) => {
                 const isDoneColumn = column.title?.toLowerCase().trim() === 'tamamlandı';
                 return (
-                <div key={column.id} className="column" style={{ background: isDark ? '#111827' : '#ebecf0', border: isDark ? '1px solid #1e293b' : '1px solid #e2e8f0', padding: '10px', width: '280px', borderRadius: '5px' }}>
+                <div key={column.id} className="column" style={{ background: isDark ? '#111827' : '#ebecf0', border: isDark ? '1px solid #1e293b' : '1px solid #e2e8f0' }}>
                   <h2 style={{ fontSize: '16px', margin: '0 0 10px 0', color: isDark ? '#f8fafc' : '#172b4d' }}>{column.title}</h2>
                   
                   <Droppable droppableId={String(column.id)}>
@@ -906,13 +906,14 @@ export default function Board() {
                                   display: 'flex', 
                                   justifyContent: 'space-between', 
                                   alignItems: 'flex-start',
+                                  gap: '8px',
                                   cursor: 'pointer',
                                   border: isDark ? '1px solid #334155' : '1px solid #e2e8f0',
                                   borderLeft: task.color ? `6px solid ${task.color}` : (isDoneColumn ? '6px solid #36b37e' : (isDark ? '1px solid #334155' : 'none')), 
                                   ...provided.draggableProps.style,
                                 }}
                               >
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%', minWidth: 0, flex: 1 }}>
                                   <span style={{ 
                                     wordBreak: 'break-word', 
                                     paddingRight: '10px',
@@ -1013,10 +1014,33 @@ export default function Board() {
                                 </div>
                                 <button 
                                   onClick={(e) => triggerDeleteTask(column.id, task.id, e)}
-                                  style={{ background: 'transparent', border: 'none', color: '#ff9999', cursor: 'pointer', fontWeight: 'bold' }}
+                                  style={{ 
+                                    flexShrink: 0,
+                                    width: '20px',
+                                    height: '20px',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    background: isDark ? 'rgba(239, 68, 68, 0.18)' : 'rgba(239, 68, 68, 0.1)', 
+                                    border: 'none', 
+                                    color: '#ef4444', 
+                                    cursor: 'pointer', 
+                                    fontWeight: 'bold',
+                                    fontSize: '11px',
+                                    borderRadius: '4px',
+                                    transition: 'all 0.15s ease'
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.background = '#ef4444';
+                                    e.currentTarget.style.color = '#ffffff';
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.background = isDark ? 'rgba(239, 68, 68, 0.18)' : 'rgba(239, 68, 68, 0.1)';
+                                    e.currentTarget.style.color = '#ef4444';
+                                  }}
                                   title="Görevi Sil"
                                 >
-                                  X
+                                  ✕
                                 </button>
                               </div>
                             )}
@@ -1034,7 +1058,7 @@ export default function Board() {
                       value={newTaskText[column.id] || ''}
                       onChange={(e) => setNewTaskText({ ...newTaskText, [column.id]: e.target.value })}
                       onKeyDown={(e) => e.key === 'Enter' && handleAddTask(column.id)}
-                      style={{ flex: 1, padding: '8px', borderRadius: '4px', border: isDark ? '1px solid #334155' : '1px solid #ccc', background: isDark ? '#0f172a' : '#fff', color: isDark ? '#f8fafc' : '#172b4d' }}
+                      style={{ flex: 1, minWidth: 0, padding: '8px', borderRadius: '4px', border: isDark ? '1px solid #334155' : '1px solid #ccc', background: isDark ? '#0f172a' : '#fff', color: isDark ? '#f8fafc' : '#172b4d' }}
                     />
                     <button
                       onClick={() => handleAddTask(column.id)}
