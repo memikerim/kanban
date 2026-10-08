@@ -60,7 +60,59 @@ export default function Board() {
   // --- Account Modal State ---
   const [showAccountModal, setShowAccountModal] = useState(false);
   const [deleteAccountPassword, setDeleteAccountPassword] = useState('');
-  const [deleteAccountError, setDeleteAccountError] = useState('');
+    const [deleteAccountError, setDeleteAccountError] = useState('');
+
+  // --- Password Change State ---
+  const [changePasswordOld, setChangePasswordOld] = useState('');
+  const [changePasswordNew, setChangePasswordNew] = useState('');
+  const [changePasswordConfirm, setChangePasswordConfirm] = useState('');
+  const [changePasswordCaptchaCode, setChangePasswordCaptchaCode] = useState('');
+  const [changePasswordCaptchaInput, setChangePasswordCaptchaInput] = useState('');
+  const [changePasswordError, setChangePasswordError] = useState('');
+  const [changePasswordSuccess, setChangePasswordSuccess] = useState('');
+
+  useEffect(() => {
+    if (showAccountModal) {
+      setChangePasswordCaptchaCode(Math.floor(100000 + Math.random() * 900000).toString());
+      setChangePasswordCaptchaInput('');
+      setChangePasswordOld('');
+      setChangePasswordNew('');
+      setChangePasswordConfirm('');
+      setChangePasswordError('');
+      setChangePasswordSuccess('');
+    }
+  }, [showAccountModal]);
+
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    setChangePasswordError('');
+    setChangePasswordSuccess('');
+
+    if (changePasswordCaptchaInput !== changePasswordCaptchaCode) {
+      return setChangePasswordError("Robot kontrol kodu hatalı. Lütfen tekrar deneyin.");
+    }
+    if (changePasswordNew !== changePasswordConfirm) {
+      return setChangePasswordError("Şifreler eşleşmiyor! Lütfen kontrol edin.");
+    }
+    if (changePasswordNew.length < 6) {
+      return setChangePasswordError("Yeni şifre en az 6 karakter olmalıdır.");
+    }
+
+    try {
+      const res = await api.put('/auth/change-password', {
+        oldPassword: changePasswordOld,
+        newPassword: changePasswordNew
+      });
+      setChangePasswordSuccess(res.data.message || "Şifreniz başarıyla değiştirildi.");
+      setChangePasswordOld('');
+      setChangePasswordNew('');
+      setChangePasswordConfirm('');
+      setChangePasswordCaptchaCode(Math.floor(100000 + Math.random() * 900000).toString());
+      setChangePasswordCaptchaInput('');
+    } catch (err) {
+      setChangePasswordError(err.response?.data?.error || "Şifre değiştirilemedi.");
+    }
+  };
 
   const handleDeleteMyAccount = async (e) => {
     e.preventDefault();
@@ -1308,7 +1360,7 @@ export default function Board() {
           backgroundColor: isDark ? 'rgba(0,0,0,0.75)' : 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
         }}>
           <div style={{
-            background: isDark ? '#1e293b' : '#f4f5f7', border: isDark ? '1px solid #334155' : 'none', padding: '24px', borderRadius: '8px', width: '90%', maxWidth: '420px', display: 'flex', flexDirection: 'column', gap: '15px'
+            background: isDark ? '#1e293b' : '#f4f5f7', border: isDark ? '1px solid #334155' : 'none', padding: '24px', borderRadius: '8px', width: '90%', maxWidth: '420px', maxHeight: '90vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '15px'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ margin: 0, color: isDark ? '#f8fafc' : '#172b4d' }}>🏢 Çalışma Alanı</h3>
@@ -1451,7 +1503,7 @@ export default function Board() {
           backgroundColor: isDark ? 'rgba(0,0,0,0.75)' : 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
         }}>
           <div style={{
-            background: isDark ? '#1e293b' : '#f4f5f7', border: isDark ? '1px solid #334155' : 'none', padding: '24px', borderRadius: '8px', width: '90%', maxWidth: '420px', display: 'flex', flexDirection: 'column', gap: '15px'
+            background: isDark ? '#1e293b' : '#f4f5f7', border: isDark ? '1px solid #334155' : 'none', padding: '24px', borderRadius: '8px', width: '90%', maxWidth: '420px', maxHeight: '90vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '15px'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ margin: 0, color: isDark ? '#f8fafc' : '#172b4d' }}>⚙️ Hesap Yönetimi</h3>
@@ -1473,7 +1525,81 @@ export default function Board() {
               </div>
             </div>
 
-            <div style={{ background: isDark ? '#3b1219' : '#fff0f0', padding: '15px', borderRadius: '6px', border: isDark ? '1px solid #7f1d1d' : '1px solid #ffbdad' }}>
+            
+              <div style={{ background: isDark ? '#0f172a' : '#fff', padding: '15px', borderRadius: '6px', border: isDark ? '1px solid #334155' : '1px solid #dfe1e6' }}>
+                <h4 style={{ margin: '0 0 12px 0', color: isDark ? '#f8fafc' : '#172b4d', fontSize: '14px' }}>🔒 Şifreyi Değiştir</h4>
+                
+                {changePasswordError && (
+                  <div style={{ backgroundColor: isDark ? '#450a0a' : '#ffebe6', color: isDark ? '#fca5a5' : '#bf2600', padding: '8px 12px', borderRadius: '4px', border: isDark ? '1px solid #7f1d1d' : '1px solid #ffbdad', marginBottom: '10px', fontSize: '12px', fontWeight: 'bold' }}>
+                    {changePasswordError}
+                  </div>
+                )}
+                {changePasswordSuccess && (
+                  <div style={{ backgroundColor: isDark ? '#064e3b' : '#e6ffed', color: isDark ? '#6ee7b7' : '#0a5c36', padding: '8px 12px', borderRadius: '4px', border: isDark ? '1px solid #065f46' : '1px solid #b7ebc6', marginBottom: '10px', fontSize: '12px', fontWeight: 'bold' }}>
+                    {changePasswordSuccess}
+                  </div>
+                )}
+
+                <form onSubmit={handleChangePassword} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <input 
+                    type="password" 
+                    placeholder="Mevcut Şifre" 
+                    value={changePasswordOld}
+                    onChange={(e) => setChangePasswordOld(e.target.value)}
+                    required
+                    style={{ padding: '8px 10px', borderRadius: '4px', border: isDark ? '1px solid #334155' : '1px solid #dfe1e6', background: isDark ? '#1e293b' : '#fff', color: isDark ? '#f8fafc' : '#172b4d', fontSize: '13px' }}
+                  />
+                  <input 
+                    type="password" 
+                    placeholder="Yeni Şifre" 
+                    value={changePasswordNew}
+                    onChange={(e) => setChangePasswordNew(e.target.value)}
+                    required
+                    style={{ padding: '8px 10px', borderRadius: '4px', border: isDark ? '1px solid #334155' : '1px solid #dfe1e6', background: isDark ? '#1e293b' : '#fff', color: isDark ? '#f8fafc' : '#172b4d', fontSize: '13px' }}
+                  />
+                  <input 
+                    type="password" 
+                    placeholder="Yeni Şifre (Tekrar)" 
+                    value={changePasswordConfirm}
+                    onChange={(e) => setChangePasswordConfirm(e.target.value)}
+                    required
+                    style={{ padding: '8px 10px', borderRadius: '4px', border: isDark ? '1px solid #334155' : '1px solid #dfe1e6', background: isDark ? '#1e293b' : '#fff', color: isDark ? '#f8fafc' : '#172b4d', fontSize: '13px' }}
+                  />
+                  
+                  {/* Robot Kontrolü */}
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginTop: '5px' }}>
+                    <div style={{ 
+                      background: isDark ? '#334155' : '#e2e8f0', 
+                      padding: '8px 12px', 
+                      borderRadius: '4px', 
+                      letterSpacing: '3px', 
+                      fontWeight: 'bold',
+                      fontSize: '14px',
+                      color: isDark ? '#f8fafc' : '#1e293b',
+                      userSelect: 'none'
+                    }}>
+                      {changePasswordCaptchaCode}
+                    </div>
+                    <input 
+                      type="text" 
+                      placeholder="Kodu girin" 
+                      value={changePasswordCaptchaInput}
+                      onChange={(e) => setChangePasswordCaptchaInput(e.target.value)}
+                      required
+                      style={{ flex: 1, padding: '8px 10px', borderRadius: '4px', border: isDark ? '1px solid #334155' : '1px solid #dfe1e6', background: isDark ? '#1e293b' : '#fff', color: isDark ? '#f8fafc' : '#172b4d', fontSize: '13px' }}
+                    />
+                  </div>
+
+                  <button 
+                    type="submit"
+                    style={{ padding: '10px', background: '#0052cc', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px', marginTop: '5px' }}
+                  >
+                    Şifreyi Değiştir
+                  </button>
+                </form>
+              </div>
+
+              <div style={{ background: isDark ? '#3b1219' : '#fff0f0', padding: '15px', borderRadius: '6px', border: isDark ? '1px solid #7f1d1d' : '1px solid #ffbdad' }}>
               <h4 style={{ margin: '0 0 8px 0', color: isDark ? '#fca5a5' : '#bf2600', fontSize: '14px' }}>⚠️ Hesabı Sil</h4>
               <p style={{ margin: '0 0 12px 0', fontSize: '12px', color: isDark ? '#f87171' : '#5e6c84' }}>
                 Hesabınızı sildiğinizde oluşturduğunuz tüm veriler kalıcı olarak temizlenecektir.

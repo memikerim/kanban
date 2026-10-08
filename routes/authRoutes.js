@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 // Yeni fonksiyonları süslü parantez içine ekledik
-const { register, login, forgotPassword, resetPassword, getMe, deleteMyAccount } = require('../controllers/authController');
+const { register, login, forgotPassword, resetPassword, getMe, deleteMyAccount, changePassword } = require('../controllers/authController');
 const verifyToken = require('../middleware/authMiddleware');
 
 router.post('/register', register);
@@ -18,3 +18,5 @@ router.post('/forgot-password', forgotPassword);
 router.post('/reset-password/:token', resetPassword);
 
 module.exports = router;
+// Sifre Degistirme
+router.put('/change-password', verifyToken, changePassword);
