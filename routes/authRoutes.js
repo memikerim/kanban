@@ -17,6 +17,7 @@ router.post('/delete-account', verifyToken, deleteMyAccount);
 router.post('/forgot-password', forgotPassword);
 router.post('/reset-password/:token', resetPassword);
 
-module.exports = router;
-// Sifre Degistirme
+// Şifre Değiştirme
 router.put('/change-password', verifyToken, changePassword);
+
+module.exports = router;

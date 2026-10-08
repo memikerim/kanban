@@ -1,15 +1,15 @@
-﻿const bcrypt = require('bcryptjs');
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const prisma = require('../db');
 
-// KullanÄ±cÄ± KayÄ±t
+// Kullanıcı Kayıt
 const register = async (req, res) => {
     try {
         const { name, email, password } = req.body;
 
         const existingUser = await prisma.user.findUnique({ where: { email } });
         if (existingUser) {
-            return res.status(400).json({ error: "Bu email zaten kayÄ±tlÄ±." });
+            return res.status(400).json({ error: "Bu email zaten kayıtlı." });
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
@@ -22,29 +22,29 @@ const register = async (req, res) => {
             }
         });
 
-        res.status(201).json({ message: "KullanÄ±cÄ± baÅŸarÄ±yla oluÅŸturuldu." });
+        res.status(201).json({ message: "Kullanıcı başarıyla oluşturuldu." });
     } catch (error) {
-        console.error("KayÄ±t hatasÄ±:", error);
-        res.status(500).json({ error: "Sunucu hatasÄ±." });
+        console.error("Kayıt hatası:", error);
+        res.status(500).json({ error: "Sunucu hatası." });
     }
 };
 
-// KullanÄ±cÄ± GiriÅŸ
+// Kullanıcı Giriş
 const login = async (req, res) => {
     try {
         const { email, password } = req.body;
 
         const user = await prisma.user.findUnique({ where: { email } });
         if (!user) {
-            return res.status(400).json({ error: "KullanÄ±cÄ± bulunamadÄ±." });
+            return res.status(400).json({ error: "Kullanıcı bulunamadı." });
         }
 
         const isPasswordValid = await bcrypt.compare(password, user.password);
         if (!isPasswordValid) {
-            return res.status(400).json({ error: "HatalÄ± ÅŸifre." });
+            return res.status(400).json({ error: "Hatalı şifre." });
         }
 
-        // BURASI KRÄ°TÄ°K: Token'Ä±n iÃ§ine name ve role bilgilerini kesinlikle ekliyoruz
+        // BURASI KRİTİK: Token'ın içine name ve role bilgilerini kesinlikle ekliyoruz
         const token = jwt.sign(
             { userId: user.id, role: user.role, name: user.name }, 
             process.env.JWT_SECRET || "super_gizli_trello_anahtari", 
@@ -53,55 +53,55 @@ const login = async (req, res) => {
 
         res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
     } catch (error) {
-        console.error("GiriÅŸ hatasÄ±:", error);
-        res.status(500).json({ error: "Sunucu hatasÄ±." });
+        console.error("Giriş hatası:", error);
+        res.status(500).json({ error: "Sunucu hatası." });
     }
 };
 
-// Åifremi Unuttum (Mail GÃ¶nderme)
+// Şifremi Unuttum (Mail Gönderme)
 const forgotPassword = async (req, res) => {
     try {
         const { email } = req.body;
 
         const user = await prisma.user.findUnique({ where: { email } });
         if (!user) {
-            return res.status(404).json({ error: "Bu e-posta adresine kayÄ±tlÄ± bir hesap bulunamadÄ±." });
+            return res.status(404).json({ error: "Bu e-posta adresine kayıtlı bir hesap bulunamadı." });
         }
 
-        // 15 dakikalÄ±k JWT token oluÅŸtur
+        // 15 dakikalık JWT token oluştur
         const resetToken = jwt.sign(
             { userId: user.id },
             process.env.JWT_SECRET || "super_gizli_trello_anahtari",
             { expiresIn: '15m' }
         );
 
-        // Frontend baÄŸlantÄ±sÄ±nÄ± oluÅŸtur (hash router olduÄŸu iÃ§in # eklenir)
+        // Frontend bağlantısını oluştur (hash router olduğu için # eklenir)
         const frontendUrl = req.headers.origin || 'https://kanban-t778.onrender.com';
         const resetLink = `${frontendUrl}/#/reset-password/${resetToken}`;
 
         if (!process.env.BREVO_API_KEY || !process.env.EMAIL_USER) {
-            console.error("Sunucu HatasÄ±: BREVO_API_KEY veya EMAIL_USER tanÄ±mlanmamÄ±ÅŸ.");
-            return res.status(500).json({ error: "Sunucu e-posta gÃ¶ndermek iÃ§in yapÄ±landÄ±rÄ±lmamÄ±ÅŸ." });
+            console.error("Sunucu Hatası: BREVO_API_KEY veya EMAIL_USER tanımlanmamış.");
+            return res.status(500).json({ error: "Sunucu e-posta göndermek için yapılandırılmamış." });
         }
 
         const https = require('https');
 
         const htmlContent = `
             <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #dfe1e6; border-radius: 8px;">
-                <h3 style="color: #172b4d;">Åifre SÄ±fÄ±rlama Talebi</h3>
+                <h3 style="color: #172b4d;">Şifre Sıfırlama Talebi</h3>
                 <p style="color: #5e6c84;">Merhaba ${user.name},</p>
-                <p style="color: #5e6c84;">HesabÄ±nÄ±zÄ±n ÅŸifresini sÄ±fÄ±rlamak iÃ§in bir talep aldÄ±k. Åifrenizi yenilemek iÃ§in aÅŸaÄŸÄ±daki butona tÄ±klayÄ±n:</p>
+                <p style="color: #5e6c84;">Hesabınızın şifresini sıfırlamak için bir talep aldık. Şifrenizi yenilemek için aşağıdaki butona tıklayın:</p>
                 <div style="text-align: center; margin: 20px 0;">
-                    <a href="${resetLink}" style="background-color: #0052cc; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold; display: inline-block;">Åifremi SÄ±fÄ±rla</a>
+                    <a href="${resetLink}" style="background-color: #0052cc; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold; display: inline-block;">Şifremi Sıfırla</a>
                 </div>
-                <p style="color: #5e6c84; font-size: 13px;">Bu baÄŸlantÄ± 15 dakika boyunca geÃ§erlidir. EÄŸer bu talebi siz yapmadÄ±ysanÄ±z lÃ¼tfen bu e-postayÄ± gÃ¶rmezden gelin.</p>
+                <p style="color: #5e6c84; font-size: 13px;">Bu bağlantı 15 dakika boyunca geçerlidir. Eğer bu talebi siz yapmadıysanız lütfen bu e-postayı görmezden gelin.</p>
             </div>
         `;
 
         const payload = JSON.stringify({
             sender: { name: 'Kanban Destek', email: process.env.EMAIL_USER },
             to: [{ email: user.email }],
-            subject: 'Kanban - Åifre SÄ±fÄ±rlama Talebi',
+            subject: 'Kanban - Şifre Sıfırlama Talebi',
             htmlContent: htmlContent
         });
 
@@ -136,44 +136,44 @@ const forgotPassword = async (req, res) => {
             reqHttp.end();
         });
 
-        res.status(200).json({ message: "Åifre sÄ±fÄ±rlama baÄŸlantÄ±sÄ± e-posta adresinize gÃ¶nderildi." });
+        res.status(200).json({ message: "Şifre sıfırlama bağlantısı e-posta adresinize gönderildi." });
     } catch (error) {
-        console.error("Åifre sÄ±fÄ±rlama maili hatasÄ±:", error);
-        res.status(500).json({ error: "E-posta gÃ¶nderilemedi. Hata DetayÄ±: " + (error.message || "Bilinmeyen hata") });
+        console.error("Şifre sıfırlama maili hatası:", error);
+        res.status(500).json({ error: "E-posta gönderilemedi. Hata Detayı: " + (error.message || "Bilinmeyen hata") });
     }
 };
 
-// Åifre SÄ±fÄ±rlama
+// Şifre Sıfırlama
 const resetPassword = async (req, res) => {
     try {
         const { token } = req.params;
         const { newPassword } = req.body;
 
         if (!token) {
-            return res.status(400).json({ error: "GeÃ§ersiz veya eksik baÄŸlantÄ±." });
+            return res.status(400).json({ error: "Geçersiz veya eksik bağlantı." });
         }
 
-        // Token'Ä± doÄŸrula
+        // Token'ı doğrula
         const decoded = jwt.verify(token, process.env.JWT_SECRET || "super_gizli_trello_anahtari");
 
-        // Yeni ÅŸifreyi hash'le ve kaydet
+        // Yeni şifreyi hash'le ve kaydet
         const hashedPassword = await bcrypt.hash(newPassword, 10);
         await prisma.user.update({
             where: { id: decoded.userId },
             data: { password: hashedPassword }
         });
 
-        res.status(200).json({ message: "Åifreniz baÅŸarÄ±yla gÃ¼ncellendi. Yeni ÅŸifrenizle giriÅŸ yapabilirsiniz." });
+        res.status(200).json({ message: "Şifreniz başarıyla güncellendi. Yeni şifrenizle giriş yapabilirsiniz." });
     } catch (error) {
-        console.error("Åifre sÄ±fÄ±rlama iÅŸlemi hatasÄ±:", error);
+        console.error("Şifre sıfırlama işlemi hatası:", error);
         if (error.name === 'TokenExpiredError') {
-            return res.status(400).json({ error: "Bu ÅŸifre sÄ±fÄ±rlama baÄŸlantÄ±sÄ±nÄ±n sÃ¼resi dolmuÅŸ. LÃ¼tfen yeniden talep edin." });
+            return res.status(400).json({ error: "Bu şifre sıfırlama bağlantısının süresi dolmuş. Lütfen yeniden talep edin." });
         }
-        res.status(400).json({ error: "GeÃ§ersiz ÅŸifre sÄ±fÄ±rlama baÄŸlantÄ±sÄ±." });
+        res.status(400).json({ error: "Geçersiz şifre sıfırlama bağlantısı." });
     }
 };
 
-// Mevcut kullanÄ±cÄ± bilgilerini getir (token'dan)
+// Mevcut kullanıcı bilgilerini getir (token'dan)
 const getMe = async (req, res) => {
     try {
         const user = await prisma.user.findUnique({
@@ -181,50 +181,50 @@ const getMe = async (req, res) => {
             select: { id: true, name: true, email: true, role: true }
         });
         if (!user) {
-            return res.status(404).json({ error: "KullanÄ±cÄ± bulunamadÄ±." });
+            return res.status(404).json({ error: "Kullanıcı bulunamadı." });
         }
         res.json(user);
     } catch (error) {
-        console.error("KullanÄ±cÄ± bilgisi hatasÄ±:", error);
-        res.status(500).json({ error: "Sunucu hatasÄ±." });
+        console.error("Kullanıcı bilgisi hatası:", error);
+        res.status(500).json({ error: "Sunucu hatası." });
     }
 };
 
-// Kendi hesabÄ±nÄ± sil (Åifre doÄŸrulamasÄ± ile)
+// Kendi hesabını sil (Şifre doğrulaması ile)
 const deleteMyAccount = async (req, res) => {
     try {
         const userId = req.user.userId;
         const { password } = req.body;
 
         if (!password) {
-            return res.status(400).json({ error: "HesabÄ±nÄ±zÄ± silmek iÃ§in ÅŸifrenizi girmelisiniz." });
+            return res.status(400).json({ error: "Hesabınızı silmek için şifrenizi girmelisiniz." });
         }
 
         const user = await prisma.user.findUnique({ where: { id: userId } });
         if (!user) {
-            return res.status(404).json({ error: "KullanÄ±cÄ± bulunamadÄ±." });
+            return res.status(404).json({ error: "Kullanıcı bulunamadı." });
         }
 
-        // Åifre doÄŸrulamasÄ±
+        // Şifre doğrulaması
         const isPasswordValid = await bcrypt.compare(password, user.password);
         if (!isPasswordValid) {
-            return res.status(401).json({ error: "Åifre hatalÄ±! Hesap silinemedi." });
+            return res.status(401).json({ error: "Şifre hatalı! Hesap silinemedi." });
         }
 
-        // KullanÄ±cÄ±nÄ±n workspace Ã¼yeliklerini sil
+        // Kullanıcının workspace üyeliklerini sil
         await prisma.workspaceMember.deleteMany({ where: { userId } });
 
-        // KullanÄ±cÄ±yÄ± sil (cascade ile projeler, tasklar vb. de silinir)
+        // Kullanıcıyı sil (cascade ile projeler, tasklar vb. de silinir)
         await prisma.user.delete({ where: { id: userId } });
 
-        res.json({ message: "HesabÄ±nÄ±z baÅŸarÄ±yla silindi." });
+        res.json({ message: "Hesabınız başarıyla silindi." });
     } catch (error) {
-        console.error("Hesap silme hatasÄ±:", error);
-        res.status(500).json({ error: "Hesap silinirken bir hata oluÅŸtu." });
+        console.error("Hesap silme hatası:", error);
+        res.status(500).json({ error: "Hesap silinirken bir hata oluştu." });
     }
 };
 
-// TÃ¼m fonksiyonlarÄ± dÄ±ÅŸa aktar
+// Şifre Değiştirme
 const changePassword = async (req, res) => {
     try {
         const userId = req.user.userId;
@@ -252,6 +252,6 @@ const changePassword = async (req, res) => {
         res.status(500).json({ error: "Sunucu hatası." });
     }
 };
+
+// Tüm fonksiyonları dışa aktar
 module.exports = { register, login, forgotPassword, resetPassword, getMe, deleteMyAccount, changePassword };
-
-
