@@ -637,6 +637,54 @@ export default function Board() {
       )}
 
       <aside className={`sidebar ${currentProjectId ? 'hidden-mobile' : ''}`}>
+        {/* MOBİL İÇİN KULLANICI MENÜSÜ (Sadece mobilde en üstte görünür) */}
+        <div className="mobile-user-menu" style={{ 
+          marginBottom: '15px', 
+          paddingBottom: '14px', 
+          borderBottom: isDark ? '1px solid #334155' : '1px solid #e2e8f0', 
+          flexDirection: 'column', 
+          gap: '12px' 
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ fontSize: '13px', lineHeight: '1.3' }}>
+              Giriş: <strong>{currentUser.name}</strong>
+              <div style={{ fontSize: '11px', color: isDark ? '#94a3b8' : '#64748b' }}>
+                Yetki: {currentUser.role}
+              </div>
+            </div>
+            <ThemeToggle showLabel={false} />
+          </div>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            {currentUser.rawRole === 'owner' && (
+              <button 
+                onClick={handleOpenUsersModal} 
+                style={{ padding: '7px 10px', background: '#28a745', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '11.5px', flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                👥 Kullanıcılar
+              </button>
+            )}
+            <button 
+              onClick={() => setShowTourModal(true)}
+              style={{ padding: '7px 10px', background: '#0052cc', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '11.5px', flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+              title="Uygulama Rehberi"
+            >
+              💡 Rehber
+            </button>
+            <button 
+              onClick={() => { setShowAccountModal(true); setDeleteAccountError(''); setDeleteAccountPassword(''); }}
+              style={{ padding: '7px 10px', background: '#4A5568', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '11.5px', flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+            >
+              ⚙️ Hesabım
+            </button>
+            <button 
+              onClick={handleLogout} 
+              style={{ padding: '7px 10px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '11.5px', flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+            >
+              Çıkış
+            </button>
+          </div>
+        </div>
+
         {/* ÇALIŞMA ALANLARI */}
         <h3 style={{ fontSize: '14px', marginBottom: '5px' }}>🏢 Çalışma Alanları</h3>
         <ul className="sidebar-workspace-list">
@@ -756,45 +804,6 @@ export default function Board() {
             onChange={(e) => setNewProjectName(e.target.value)} 
           />
           <button onClick={currentWorkspaceId ? handleAddWsProject : handleAddProject}>+ Proje Ekle</button>
-        </div>
-
-        {/* MOBİL İÇİN KULLANICI MENÜSÜ (Sadece telefonda görünür) */}
-        <div className="mobile-user-menu" style={{ marginTop: '20px', paddingTop: '15px', borderTop: isDark ? '1px solid #334155' : '1px solid #e2e8f0', flexDirection: 'column', gap: '10px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ fontSize: '12px', opacity: 0.9 }}>
-              Giriş: <strong>{currentUser.name}</strong>
-            </div>
-            <ThemeToggle showLabel={false} />
-          </div>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            {currentUser.rawRole === 'owner' && (
-              <button 
-                onClick={handleOpenUsersModal} 
-                style={{ padding: '6px', background: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '11px', flex: 1 }}
-              >
-                👥 Kullanıcılar
-              </button>
-            )}
-            <button 
-              onClick={() => setShowTourModal(true)}
-              style={{ padding: '6px', background: '#0052cc', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '11px', flex: 1 }}
-              title="Uygulama Rehberi"
-            >
-              💡 Rehber
-            </button>
-            <button 
-              onClick={() => { setShowAccountModal(true); setDeleteAccountError(''); setDeleteAccountPassword(''); }}
-              style={{ padding: '6px', background: '#4A5568', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '11px', flex: 1 }}
-            >
-              ⚙️ Hesabım
-            </button>
-            <button 
-              onClick={handleLogout} 
-              style={{ padding: '6px', background: '#eb5a46', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '11px', flex: 1 }}
-            >
-              Çıkış
-            </button>
-          </div>
         </div>
       </aside>
 
