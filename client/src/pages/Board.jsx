@@ -742,6 +742,7 @@ export default function Board() {
             )}
             <button 
               onClick={() => setShowTourModal(true)}
+              className="mobile-guide-btn"
               style={{ padding: '6px 12px', background: '#e4f0f6', color: '#0052cc', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}
               title="Uygulama Rehberi ve Tanıtım Turu"
             >

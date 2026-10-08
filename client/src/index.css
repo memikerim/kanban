@@ -57,6 +57,10 @@ body { background-color: #0079bf; color: #333; display: flex; flex-direction: co
   display: none !important;
 }
 
+.mobile-guide-btn {
+  display: none !important;
+}
+
 @media (max-width: 768px) {
   .back-btn-mobile {
     display: block !important;
@@ -64,6 +68,10 @@ body { background-color: #0079bf; color: #333; display: flex; flex-direction: co
   
   .mobile-user-menu {
     display: flex !important;
+  }
+
+  .mobile-guide-btn {
+    display: inline-block !important;
   }
   
   .desktop-user-menu {
