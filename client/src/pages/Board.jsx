@@ -5,6 +5,7 @@ import api from '../api/axios';
 import useAuthStore from '../store/useAuthStore';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { io } from 'socket.io-client'; // YENİ: Socket.io istemcisi
+import TourModal from '../components/TourModal';
 
 // YENİ: Sunucu ile socket bağlantısını kur
 // React state değiştiğinde bağlantının kopmaması için dışarıda tanımlamak iyidir.
@@ -29,6 +30,15 @@ export default function Board() {
 
   const [usersList, setUsersList] = useState([]);
   const [showUsersModal, setShowUsersModal] = useState(false);
+  const [showTourModal, setShowTourModal] = useState(false);
+
+  // Uygulama açıldığında eğer "Tekrar gösterme" seçilmemişse gezi turunu otomatik aç
+  useEffect(() => {
+    const isTourHidden = localStorage.getItem('hide_onboarding_tour') === 'true';
+    if (!isTourHidden) {
+      setShowTourModal(true);
+    }
+  }, []);
 
   // --- Workspace State ---
   const [workspaces, setWorkspaces] = useState([]);
@@ -686,6 +696,13 @@ export default function Board() {
               </button>
             )}
             <button 
+              onClick={() => setShowTourModal(true)}
+              style={{ padding: '6px', background: '#0052cc', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '11px', flex: 1 }}
+              title="Uygulama Rehberi"
+            >
+              💡 Rehber
+            </button>
+            <button 
               onClick={() => { setShowAccountModal(true); setDeleteAccountError(''); setDeleteAccountPassword(''); }}
               style={{ padding: '6px', background: '#4A5568', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '11px', flex: 1 }}
             >
@@ -723,6 +740,13 @@ export default function Board() {
                 🕒 Son Değişiklikler
               </button>
             )}
+            <button 
+              onClick={() => setShowTourModal(true)}
+              style={{ padding: '6px 12px', background: '#e4f0f6', color: '#0052cc', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}
+              title="Uygulama Rehberi ve Tanıtım Turu"
+            >
+              💡 Rehber
+            </button>
           </div>
           
           <div className="desktop-user-menu" style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
@@ -742,6 +766,13 @@ export default function Board() {
                 👥 Kullanıcı Yönetimi
               </button>
             )}
+            <button 
+              onClick={() => setShowTourModal(true)}
+              style={{ padding: '8px 14px', background: '#0052cc', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+              title="Uygulama Tanıtım Turu ve Özellik Rehberi"
+            >
+              💡 Uygulama Rehberi
+            </button>
             <button 
               onClick={() => { setShowAccountModal(true); setDeleteAccountError(''); setDeleteAccountPassword(''); }}
               style={{ padding: '8px 14px', background: '#4A5568', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
@@ -1278,6 +1309,10 @@ export default function Board() {
           </div>
         </div>
       )}
+
+      {/* UYGULAMA REHBERİ & GEZİ TURU MODALI */}
+      <TourModal isOpen={showTourModal} onClose={() => setShowTourModal(false)} />
+
     </div>
   );
 }
