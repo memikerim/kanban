@@ -191,7 +191,7 @@ export default function TourModal({ isOpen, onClose }) {
           </div>
 
           {/* SAĞ İÇERİK ALANI */}
-          <div style={{ flex: 1, padding: '24px', overflowY: 'auto', background: isDark ? '#0f172a' : '#ffffff' }}>
+          <div style={{ flex: 1, padding: '24px', overflowY: 'auto', background: isDark ? '#0f172a' : '#ffffff' }} className="tour-content-area">
             
             {/* 1. SEKMEYE ÖZEL İÇERİK: KİŞİSEL VS ALAN PROJELERİ */}
             {activeTab === 'projects_diff' && (
@@ -700,7 +700,7 @@ export default function TourModal({ isOpen, onClose }) {
             flex-direction: row !important;
             overflow-x: auto !important;
             border-right: none !important;
-            border-bottom: 1px solid #ebecf0 !important;
+            border-bottom: ${isDark ? '1px solid #334155' : '1px solid #ebecf0'} !important;
             padding: 8px !important;
             white-space: nowrap !important;
           }

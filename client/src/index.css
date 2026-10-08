@@ -26,6 +26,9 @@
   --input-text: #0f172a;
   --modal-bg: #ffffff;
   --modal-overlay: rgba(15, 23, 42, 0.6);
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: rgba(15, 23, 42, 0.22);
+  --scrollbar-thumb-hover: rgba(15, 23, 42, 0.42);
 }
 
 [data-theme="dark"] {
@@ -49,6 +52,52 @@
   --input-text: #f8fafc;
   --modal-bg: #1e293b;
   --modal-overlay: rgba(0, 0, 0, 0.75);
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: rgba(248, 250, 252, 0.24);
+  --scrollbar-thumb-hover: rgba(248, 250, 252, 0.45);
+}
+
+/* --- TÜM CİHAZLAR VE TARAYICILAR İÇİN ÖZEL MODERN KAYDIRMA ÇUBUĞU (CUSTOM SCROLLBAR) --- */
+html, body, * {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+*::-webkit-scrollbar,
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track,
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+
+*::-webkit-scrollbar-thumb,
+::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  transition: background-color 0.15s ease;
+}
+
+*::-webkit-scrollbar-thumb:hover,
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-thumb-hover);
+}
+
+*::-webkit-scrollbar-corner,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-button,
+::-webkit-scrollbar-button {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
 body {
