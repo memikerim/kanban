@@ -6,6 +6,8 @@ import useAuthStore from '../store/useAuthStore';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { io } from 'socket.io-client'; // YENİ: Socket.io istemcisi
 import TourModal from '../components/TourModal';
+import { useTheme } from '../context/ThemeContext';
+import ThemeToggle from '../components/ThemeToggle';
 
 // YENİ: Sunucu ile socket bağlantısını kur
 // React state değiştiğinde bağlantının kopmaması için dışarıda tanımlamak iyidir.
@@ -14,6 +16,7 @@ const socket = io('https://kanban-t778.onrender.com', {
 });
 
 export default function Board() {
+  const { theme, isDark } = useTheme();
   const [projects, setProjects] = useState([]);
   const [currentProjectId, setCurrentProjectId] = useState(null);
   const [newProjectName, setNewProjectName] = useState('');
@@ -608,17 +611,17 @@ export default function Board() {
       {confirmDialog.isOpen && (
         <div style={{
           position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 2000,
-          backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center'
+          backgroundColor: isDark ? 'rgba(0,0,0,0.75)' : 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center'
         }}>
-          <div style={{ background: 'white', padding: '25px', borderRadius: '8px', width: '350px', textAlign: 'center' }}>
-            <h3 style={{ marginTop: 0, color: '#172b4d' }}>Emin misiniz?</h3>
-            <p style={{ color: '#5e6c84', marginBottom: '25px' }}>
+          <div style={{ background: isDark ? '#1e293b' : 'white', border: isDark ? '1px solid #334155' : 'none', padding: '25px', borderRadius: '8px', width: '350px', textAlign: 'center' }}>
+            <h3 style={{ marginTop: 0, color: isDark ? '#f8fafc' : '#172b4d' }}>Emin misiniz?</h3>
+            <p style={{ color: isDark ? '#94a3b8' : '#5e6c84', marginBottom: '25px' }}>
               Bu {confirmDialog.type === 'project' ? 'projeyi' : 'görevi'} silmek istediğinize emin misiniz? Bu işlem geri alınamaz.
             </p>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: '15px' }}>
               <button 
                 onClick={() => setConfirmDialog({ isOpen: false, type: '', id: null, columnId: null })}
-                style={{ flex: 1, padding: '10px', background: '#e4f0f6', color: '#0079bf', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+                style={{ flex: 1, padding: '10px', background: isDark ? '#334155' : '#e4f0f6', color: isDark ? '#f8fafc' : '#0079bf', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
               >
                 İptal
               </button>
@@ -650,7 +653,7 @@ export default function Board() {
                   onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(ws.inviteCode); showToast("Davet kodu kopyalandı!", "success"); }}
                   title="Kopyalamak için tıklayın"
                   style={{ 
-                    fontSize: '10px', color: '#6c5ce7', background: '#e8e6fb', 
+                    fontSize: '10px', color: isDark ? '#c4b5fd' : '#6c5ce7', background: isDark ? '#2e1065' : '#e8e6fb', 
                     padding: '2px 6px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontFamily: 'monospace'
                   }}
                 >
@@ -660,11 +663,11 @@ export default function Board() {
               <div style={{ display: 'flex', gap: '5px', marginTop: '3px' }}>
                 <button
                   onClick={(e) => { e.stopPropagation(); handleShowWsMembers(ws); setCurrentWorkspaceId(ws.id); }}
-                  style={{ fontSize: '10px', padding: '3px 6px', background: '#e4f0f6', color: '#0079bf', border: 'none', borderRadius: '3px', cursor: 'pointer' }}
+                  style={{ fontSize: '10px', padding: '3px 6px', background: isDark ? '#334155' : '#e4f0f6', color: isDark ? '#93c5fd' : '#0079bf', border: 'none', borderRadius: '3px', cursor: 'pointer' }}
                 >
                   👥 Üyeler ({ws.members?.length || 0})
                 </button>
-                <small style={{ fontSize: '10px', color: '#a5b1c2', alignSelf: 'center' }}>
+                <small style={{ fontSize: '10px', color: isDark ? '#94a3b8' : '#a5b1c2', alignSelf: 'center' }}>
                   {ws.myRole === 'ADMIN' ? '⭐ Admin' : '👤 Üye'}
                 </small>
               </div>
@@ -679,7 +682,7 @@ export default function Board() {
         </button>
 
         {/* PROJELER */}
-        <hr style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.2)', margin: '10px 0' }} />
+        <hr style={{ border: 'none', borderTop: isDark ? '1px solid #334155' : '1px solid #e2e8f0', margin: '10px 0' }} />
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h3 style={{ fontSize: '14px', marginBottom: '5px' }}>
             {currentWorkspaceId ? '📁 Alan Projeleri' : '📁 Projelerim'}
@@ -712,7 +715,7 @@ export default function Board() {
                 </button>
               </div>
               {project.user && (
-                <small style={{ fontSize: '11px', color: '#a5b1c2' }}>
+                <small style={{ fontSize: '11px', color: isDark ? '#94a3b8' : '#a5b1c2' }}>
                   Oluşturan: {project.user.name}
                 </small>
               )}
@@ -730,9 +733,12 @@ export default function Board() {
         </div>
 
         {/* MOBİL İÇİN KULLANICI MENÜSÜ (Sadece telefonda görünür) */}
-        <div className="mobile-user-menu" style={{ marginTop: '20px', paddingTop: '15px', borderTop: '1px solid rgba(255,255,255,0.2)', flexDirection: 'column', gap: '10px' }}>
-          <div style={{ fontSize: '12px', opacity: 0.9 }}>
-            Giriş: <strong>{currentUser.name}</strong>
+        <div className="mobile-user-menu" style={{ marginTop: '20px', paddingTop: '15px', borderTop: isDark ? '1px solid #334155' : '1px solid #e2e8f0', flexDirection: 'column', gap: '10px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ fontSize: '12px', opacity: 0.9 }}>
+              Giriş: <strong>{currentUser.name}</strong>
+            </div>
+            <ThemeToggle showLabel={false} />
           </div>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             {currentUser.rawRole === 'owner' && (
@@ -769,7 +775,7 @@ export default function Board() {
       <main className={`board ${!currentProjectId ? 'hide-main-on-mobile' : ''}`}>
         <header className="board-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           
-          <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
             {currentProjectId && (
               <button 
                 onClick={() => setCurrentProjectId(null)}
@@ -783,7 +789,7 @@ export default function Board() {
             {currentProjectId && (
               <button 
                 onClick={handleShowLogs}
-                style={{ padding: '6px 12px', background: '#e4f0f6', color: '#0079bf', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}
+                style={{ padding: '6px 12px', background: isDark ? '#334155' : '#e4f0f6', color: isDark ? '#93c5fd' : '#0079bf', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}
               >
                 🕒 Son Değişiklikler
               </button>
@@ -791,11 +797,12 @@ export default function Board() {
             <button 
               onClick={() => setShowTourModal(true)}
               className="mobile-guide-btn"
-              style={{ padding: '6px 12px', background: '#e4f0f6', color: '#0052cc', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}
+              style={{ padding: '6px 12px', background: isDark ? '#1e3a8a' : '#e4f0f6', color: isDark ? '#93c5fd' : '#0052cc', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}
               title="Uygulama Rehberi ve Tanıtım Turu"
             >
               💡 Rehber
             </button>
+            <ThemeToggle className="mobile-theme-btn" showLabel={false} />
           </div>
           
           <div className="desktop-user-menu" style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
@@ -822,6 +829,7 @@ export default function Board() {
             >
               💡 Uygulama Rehberi
             </button>
+            <ThemeToggle />
             <button 
               onClick={() => { setShowAccountModal(true); setDeleteAccountError(''); setDeleteAccountPassword(''); }}
               style={{ padding: '8px 14px', background: '#4A5568', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
@@ -839,8 +847,8 @@ export default function Board() {
               {columns.map((column) => {
                 const isDoneColumn = column.title?.toLowerCase().trim() === 'tamamlandı';
                 return (
-                <div key={column.id} className="column" style={{ background: '#ebecf0', padding: '10px', width: '280px', borderRadius: '5px' }}>
-                  <h2 style={{ fontSize: '16px', margin: '0 0 10px 0', color: '#172b4d' }}>{column.title}</h2>
+                <div key={column.id} className="column" style={{ background: isDark ? '#111827' : '#ebecf0', border: isDark ? '1px solid #1e293b' : '1px solid #e2e8f0', padding: '10px', width: '280px', borderRadius: '5px' }}>
+                  <h2 style={{ fontSize: '16px', margin: '0 0 10px 0', color: isDark ? '#f8fafc' : '#172b4d' }}>{column.title}</h2>
                   
                   <Droppable droppableId={String(column.id)}>
                     {(provided) => (
@@ -862,14 +870,19 @@ export default function Board() {
                                   userSelect: 'none',
                                   padding: '12px',
                                   margin: '0 0 8px 0',
-                                  backgroundColor: snapshot.isDragging ? '#e6fcff' : (isDoneColumn ? '#f9fafb' : '#fff'),
+                                  backgroundColor: snapshot.isDragging 
+                                    ? (isDark ? '#1e3a5f' : '#e6fcff') 
+                                    : (isDoneColumn 
+                                        ? (isDark ? '#151d2a' : '#f9fafb') 
+                                        : (isDark ? '#1e293b' : '#fff')),
                                   borderRadius: '4px',
-                                  boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
+                                  boxShadow: isDark ? '0 1px 3px rgba(0,0,0,0.5)' : '0 1px 3px rgba(0,0,0,0.15)',
                                   display: 'flex', 
                                   justifyContent: 'space-between', 
                                   alignItems: 'flex-start',
                                   cursor: 'pointer',
-                                  borderLeft: task.color ? `6px solid ${task.color}` : (isDoneColumn ? '6px solid #36b37e' : 'none'), 
+                                  border: isDark ? '1px solid #334155' : '1px solid #e2e8f0',
+                                  borderLeft: task.color ? `6px solid ${task.color}` : (isDoneColumn ? '6px solid #36b37e' : (isDark ? '1px solid #334155' : 'none')), 
                                   ...provided.draggableProps.style,
                                 }}
                               >
@@ -878,7 +891,7 @@ export default function Board() {
                                     wordBreak: 'break-word', 
                                     paddingRight: '10px',
                                     textDecoration: isDoneColumn ? 'line-through' : 'none',
-                                    color: isDoneColumn ? '#5e6c84' : '#172b4d',
+                                    color: isDoneColumn ? (isDark ? '#94a3b8' : '#5e6c84') : (isDark ? '#f8fafc' : '#172b4d'),
                                     opacity: isDoneColumn ? 0.8 : 1,
                                     fontWeight: isDoneColumn ? 'normal' : '500'
                                   }}>
@@ -887,20 +900,20 @@ export default function Board() {
                                   
                                   <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                                     {task.dueDate && (
-                                      <small style={{ color: '#5e6c84', fontSize: '11px' }}>
+                                      <small style={{ color: isDark ? '#94a3b8' : '#5e6c84', fontSize: '11px' }}>
                                         📅 {new Date(task.dueDate).toLocaleDateString('tr-TR')}
                                       </small>
                                     )}
                                     {task.description && (
-                                      <small style={{ color: '#5e6c84', fontSize: '11px' }}>📝 Açıklama</small>
+                                      <small style={{ color: isDark ? '#94a3b8' : '#5e6c84', fontSize: '11px' }}>📝 Açıklama</small>
                                     )}
                                     {task.attachments && task.attachments.length > 0 && (
-                                      <small style={{ color: '#5e6c84', fontSize: '11px' }}>📎 {task.attachments.length}</small>
+                                      <small style={{ color: isDark ? '#94a3b8' : '#5e6c84', fontSize: '11px' }}>📎 {task.attachments.length}</small>
                                     )}
                                   </div>
                                   
                                   {task.user && (
-                                    <small style={{ color: '#888', fontSize: '10px', marginTop: '2px', fontStyle: 'italic' }}>
+                                    <small style={{ color: isDark ? '#64748b' : '#888', fontSize: '10px', marginTop: '2px', fontStyle: 'italic' }}>
                                       Ekleyen: {task.user.name}
                                     </small>
                                   )}
@@ -914,7 +927,7 @@ export default function Board() {
                                       flexWrap: 'wrap', 
                                       marginTop: '8px', 
                                       paddingTop: '6px', 
-                                      borderTop: '1px dashed #ebecf0' 
+                                      borderTop: isDark ? '1px dashed #334155' : '1px dashed #ebecf0' 
                                     }}
                                     onClick={(e) => e.stopPropagation()}
                                   >
@@ -922,21 +935,25 @@ export default function Board() {
                                       const isTargetDone = targetCol.title?.toLowerCase().trim() === 'tamamlandı';
                                       const isTargetInProgress = targetCol.title?.toLowerCase().trim() === 'devam edenler';
                                       
-                                      let btnBg = '#f4f5f7';
-                                      let btnColor = '#42526e';
+                                      let btnBg = isDark ? '#334155' : '#f4f5f7';
+                                      let btnColor = isDark ? '#cbd5e1' : '#42526e';
+                                      let btnBorder = isDark ? '1px solid #475569' : '1px solid #dfe1e6';
                                       let icon = '➔';
                                       
                                       if (isTargetDone) {
-                                        btnBg = '#e3fcef';
-                                        btnColor = '#006644';
+                                        btnBg = isDark ? '#064e3b' : '#e3fcef';
+                                        btnColor = isDark ? '#6ee7b7' : '#006644';
+                                        btnBorder = isDark ? '1px solid #059669' : '1px solid #abf5d1';
                                         icon = '✔';
                                       } else if (isTargetInProgress) {
-                                        btnBg = '#deebff';
-                                        btnColor = '#0747a6';
+                                        btnBg = isDark ? '#1e3a8a' : '#deebff';
+                                        btnColor = isDark ? '#93c5fd' : '#0747a6';
+                                        btnBorder = isDark ? '1px solid #2563eb' : '1px solid #b3d4ff';
                                         icon = '⚡';
                                       } else {
-                                        btnBg = '#f4f5f7';
-                                        btnColor = '#42526e';
+                                        btnBg = isDark ? '#334155' : '#f4f5f7';
+                                        btnColor = isDark ? '#cbd5e1' : '#42526e';
+                                        btnBorder = isDark ? '1px solid #475569' : '1px solid #dfe1e6';
                                         icon = '⬅';
                                       }
 
@@ -948,7 +965,7 @@ export default function Board() {
                                           style={{
                                             background: btnBg,
                                             color: btnColor,
-                                            border: `1px solid ${isTargetDone ? '#abf5d1' : isTargetInProgress ? '#b3d4ff' : '#dfe1e6'}`,
+                                            border: btnBorder,
                                             borderRadius: '4px',
                                             padding: '2px 7px',
                                             fontSize: '11px',
@@ -991,11 +1008,11 @@ export default function Board() {
                       value={newTaskText[column.id] || ''}
                       onChange={(e) => setNewTaskText({ ...newTaskText, [column.id]: e.target.value })}
                       onKeyDown={(e) => e.key === 'Enter' && handleAddTask(column.id)}
-                      style={{ flex: 1, padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                      style={{ flex: 1, padding: '8px', borderRadius: '4px', border: isDark ? '1px solid #334155' : '1px solid #ccc', background: isDark ? '#0f172a' : '#fff', color: isDark ? '#f8fafc' : '#172b4d' }}
                     />
                     <button
                       onClick={() => handleAddTask(column.id)}
-                      style={{ padding: '8px 12px', background: '#0079bf', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                      style={{ padding: '8px 12px', background: '#0079bf', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
                     >
                       Ekle
                     </button>
@@ -1008,7 +1025,7 @@ export default function Board() {
             </div>
           </DragDropContext>
         ) : (
-          <p>Lütfen görevleri görmek için sol menüden bir proje seçin.</p>
+          <p style={{ color: isDark ? '#94a3b8' : '#5e6c84' }}>Lütfen görevleri görmek için sol menüden bir proje seçin.</p>
         )}
       </main>
 
@@ -1016,29 +1033,29 @@ export default function Board() {
       {editingTask && (
         <div style={{
           position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
-          backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
+          backgroundColor: isDark ? 'rgba(0,0,0,0.75)' : 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
         }}>
           <div style={{
-            background: '#f4f5f7', padding: '24px', borderRadius: '8px', width: '90%', maxWidth: '400px', display: 'flex', flexDirection: 'column', gap: '15px'
+            background: isDark ? '#1e293b' : '#f4f5f7', border: isDark ? '1px solid #334155' : 'none', padding: '24px', borderRadius: '8px', width: '90%', maxWidth: '400px', display: 'flex', flexDirection: 'column', gap: '15px'
           }}>
-            <h3 style={{ margin: 0, color: '#172b4d' }}>Görev Detayı</h3>
+            <h3 style={{ margin: 0, color: isDark ? '#f8fafc' : '#172b4d' }}>Görev Detayı</h3>
             
             <input 
               type="text" 
               value={editingTask.title} 
               onChange={(e) => setEditingTask({ ...editingTask, title: e.target.value })}
-              style={{ padding: '10px', borderRadius: '4px', border: '1px solid #dfe1e6', fontSize: '16px' }}
+              style={{ padding: '10px', borderRadius: '4px', border: isDark ? '1px solid #334155' : '1px solid #dfe1e6', background: isDark ? '#0f172a' : '#ffffff', color: isDark ? '#f8fafc' : '#172b4d', fontSize: '16px' }}
             />
             
             <textarea 
               placeholder="Daha detaylı bir açıklama ekle..."
               value={editingTask.description || ''}
               onChange={(e) => setEditingTask({ ...editingTask, description: e.target.value })}
-              style={{ padding: '10px', borderRadius: '4px', border: '1px solid #dfe1e6', minHeight: '100px', resize: 'vertical' }}
+              style={{ padding: '10px', borderRadius: '4px', border: isDark ? '1px solid #334155' : '1px solid #dfe1e6', background: isDark ? '#0f172a' : '#ffffff', color: isDark ? '#f8fafc' : '#172b4d', minHeight: '100px', resize: 'vertical' }}
             />
             
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <label style={{ fontSize: '14px', color: '#5e6c84', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <label style={{ fontSize: '14px', color: isDark ? '#94a3b8' : '#5e6c84', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 Etiket Rengi:
                 <input 
                   type="color" 
@@ -1048,22 +1065,22 @@ export default function Board() {
                 />
               </label>
 
-              <label style={{ fontSize: '14px', color: '#5e6c84', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <label style={{ fontSize: '14px', color: isDark ? '#94a3b8' : '#5e6c84', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 Son Tarih:
                 <input 
                   type="date" 
                   value={editingTask.dueDate ? new Date(editingTask.dueDate).toISOString().split('T')[0] : ''} 
                   onChange={(e) => setEditingTask({ ...editingTask, dueDate: e.target.value })}
-                  style={{ padding: '5px', borderRadius: '4px', border: '1px solid #dfe1e6' }}
+                  style={{ padding: '5px', borderRadius: '4px', border: isDark ? '1px solid #334155' : '1px solid #dfe1e6', background: isDark ? '#0f172a' : '#ffffff', color: isDark ? '#f8fafc' : '#172b4d' }}
                 />
               </label>
             </div>
 
             {/* YENİ: DOSYA YÜKLEME VE EKLENTİLER */}
-            <div style={{ borderTop: '1px solid #dfe1e6', paddingTop: '10px', marginTop: '5px' }}>
+            <div style={{ borderTop: isDark ? '1px solid #334155' : '1px solid #dfe1e6', paddingTop: '10px', marginTop: '5px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                <h4 style={{ margin: 0, fontSize: '14px', color: '#172b4d' }}>📎 Eklentiler</h4>
-                <label style={{ cursor: 'pointer', background: '#e4f0f6', color: '#0079bf', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold' }}>
+                <h4 style={{ margin: 0, fontSize: '14px', color: isDark ? '#f8fafc' : '#172b4d' }}>📎 Eklentiler</h4>
+                <label style={{ cursor: 'pointer', background: isDark ? '#334155' : '#e4f0f6', color: isDark ? '#93c5fd' : '#0079bf', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold' }}>
                   Dosya Yükle
                   <input type="file" style={{ display: 'none' }} onChange={handleFileUpload} />
                 </label>
@@ -1074,25 +1091,25 @@ export default function Board() {
                   {editingTask.attachments.map(att => {
                     const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(att.format?.toLowerCase());
                     return (
-                      <div key={att.id} style={{ display: 'flex', gap: '12px', background: '#fff', padding: '10px', borderRadius: '6px', border: '1px solid #dfe1e6', alignItems: 'center' }}>
+                      <div key={att.id} style={{ display: 'flex', gap: '12px', background: isDark ? '#0f172a' : '#fff', padding: '10px', borderRadius: '6px', border: isDark ? '1px solid #334155' : '1px solid #dfe1e6', alignItems: 'center' }}>
                         {isImage ? (
                           <div style={{ width: '80px', height: '60px', flexShrink: 0, borderRadius: '4px', overflow: 'hidden', backgroundColor: '#091e420f' }}>
                             <img src={att.url} alt="Önizleme" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                           </div>
                         ) : (
-                          <div style={{ width: '80px', height: '60px', flexShrink: 0, borderRadius: '4px', backgroundColor: '#e4f0f6', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '24px' }}>
+                          <div style={{ width: '80px', height: '60px', flexShrink: 0, borderRadius: '4px', backgroundColor: isDark ? '#334155' : '#e4f0f6', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '24px' }}>
                             📄
                           </div>
                         )}
                         <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, gap: '4px' }}>
-                          <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#172b4d', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          <span style={{ fontSize: '13px', fontWeight: 'bold', color: isDark ? '#f8fafc' : '#172b4d', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {att.originalName || 'Dosya'}
                           </span>
-                          <span style={{ fontSize: '11px', color: '#5e6c84' }}>
+                          <span style={{ fontSize: '11px', color: isDark ? '#94a3b8' : '#5e6c84' }}>
                             Eklenti • {att.format?.toUpperCase() || 'BİLİNMEYEN'}
                           </span>
                           <div style={{ display: 'flex', gap: '10px', marginTop: '2px' }}>
-                            <a href={isImage ? att.url : att.url.replace('/upload/', '/upload/fl_attachment/')} target="_blank" rel="noreferrer" style={{ fontSize: '12px', color: '#0052cc', textDecoration: 'underline', cursor: 'pointer' }}>
+                            <a href={isImage ? att.url : att.url.replace('/upload/', '/upload/fl_attachment/')} target="_blank" rel="noreferrer" style={{ fontSize: '12px', color: isDark ? '#60a5fa' : '#0052cc', textDecoration: 'underline', cursor: 'pointer' }}>
                               Aç / İndir
                             </a>
                             <button onClick={() => handleDeleteAttachment(att.id)} style={{ fontSize: '12px', color: '#ff5630', textDecoration: 'underline', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>
@@ -1105,14 +1122,14 @@ export default function Board() {
                   })}
                 </div>
               ) : (
-                <p style={{ margin: 0, fontSize: '12px', color: '#5e6c84' }}>Henüz dosya eklenmemiş.</p>
+                <p style={{ margin: 0, fontSize: '12px', color: isDark ? '#94a3b8' : '#5e6c84' }}>Henüz dosya eklenmemiş.</p>
               )}
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
               <button 
                 onClick={() => setEditingTask(null)}
-                style={{ padding: '8px 16px', background: '#e4f0f6', color: '#0079bf', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+                style={{ padding: '8px 16px', background: isDark ? '#334155' : '#e4f0f6', color: isDark ? '#f8fafc' : '#0079bf', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
               >
                 İptal
               </button>
@@ -1131,26 +1148,26 @@ export default function Board() {
       {showLogs && (
         <div style={{
           position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
-          backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
+          backgroundColor: isDark ? 'rgba(0,0,0,0.75)' : 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
         }}>
           <div style={{
-            background: '#f4f5f7', padding: '24px', borderRadius: '8px', width: '90%', maxWidth: '500px', maxHeight: '80vh', display: 'flex', flexDirection: 'column', gap: '15px'
+            background: isDark ? '#1e293b' : '#f4f5f7', border: isDark ? '1px solid #334155' : 'none', padding: '24px', borderRadius: '8px', width: '90%', maxWidth: '500px', maxHeight: '80vh', display: 'flex', flexDirection: 'column', gap: '15px'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ margin: 0, color: '#172b4d' }}>🕒 Son Değişiklikler</h3>
-              <button onClick={() => setShowLogs(false)} style={{ background: 'transparent', border: 'none', fontSize: '18px', cursor: 'pointer', color: '#5e6c84' }}>✖</button>
+              <h3 style={{ margin: 0, color: isDark ? '#f8fafc' : '#172b4d' }}>🕒 Son Değişiklikler</h3>
+              <button onClick={() => setShowLogs(false)} style={{ background: 'transparent', border: 'none', fontSize: '18px', cursor: 'pointer', color: isDark ? '#94a3b8' : '#5e6c84' }}>✖</button>
             </div>
             
             <div style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px', paddingRight: '5px' }}>
               {logs.length === 0 ? (
-                <p style={{ color: '#5e6c84', textAlign: 'center' }}>Henüz bir hareket kaydedilmemiş.</p>
+                <p style={{ color: isDark ? '#94a3b8' : '#5e6c84', textAlign: 'center' }}>Henüz bir hareket kaydedilmemiş.</p>
               ) : (
                 logs.map(log => (
-                  <div key={log.id} style={{ padding: '12px', background: '#fff', borderRadius: '4px', boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>
-                    <p style={{ margin: '0 0 5px 0', fontSize: '14px', color: '#172b4d' }}>
+                  <div key={log.id} style={{ padding: '12px', background: isDark ? '#0f172a' : '#fff', border: isDark ? '1px solid #334155' : 'none', borderRadius: '4px', boxShadow: isDark ? '0 1px 2px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.1)' }}>
+                    <p style={{ margin: '0 0 5px 0', fontSize: '14px', color: isDark ? '#f8fafc' : '#172b4d' }}>
                       <strong>{log.user?.name || 'Bilinmeyen Kullanıcı'}</strong> {log.action}
                     </p>
-                    <small style={{ color: '#888', fontSize: '11px' }}>
+                    <small style={{ color: isDark ? '#94a3b8' : '#888', fontSize: '11px' }}>
                       {new Date(log.createdAt).toLocaleString('tr-TR')}
                     </small>
                   </div>
@@ -1164,23 +1181,23 @@ export default function Board() {
       {showUsersModal && (
         <div style={{
           position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
-          backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
+          backgroundColor: isDark ? 'rgba(0,0,0,0.75)' : 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
         }}>
           <div style={{
-            background: '#f4f5f7', padding: '24px', borderRadius: '8px', width: '95%', maxWidth: '700px', maxHeight: '80vh', display: 'flex', flexDirection: 'column', gap: '15px'
+            background: isDark ? '#1e293b' : '#f4f5f7', border: isDark ? '1px solid #334155' : 'none', padding: '24px', borderRadius: '8px', width: '95%', maxWidth: '700px', maxHeight: '80vh', display: 'flex', flexDirection: 'column', gap: '15px'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ margin: 0, color: '#172b4d' }}>👥 Kullanıcı Yönetimi</h3>
-              <button onClick={() => setShowUsersModal(false)} style={{ background: 'transparent', border: 'none', fontSize: '18px', cursor: 'pointer', color: '#5e6c84' }}>✖</button>
+              <h3 style={{ margin: 0, color: isDark ? '#f8fafc' : '#172b4d' }}>👥 Kullanıcı Yönetimi</h3>
+              <button onClick={() => setShowUsersModal(false)} style={{ background: 'transparent', border: 'none', fontSize: '18px', cursor: 'pointer', color: isDark ? '#94a3b8' : '#5e6c84' }}>✖</button>
             </div>
             
             <div style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px', paddingRight: '5px' }}>
               {usersList.length === 0 ? (
-                <p style={{ color: '#5e6c84', textAlign: 'center' }}>Kullanıcı bulunamadı.</p>
+                <p style={{ color: isDark ? '#94a3b8' : '#5e6c84', textAlign: 'center' }}>Kullanıcı bulunamadı.</p>
               ) : (
                 <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', minWidth: '450px', borderCollapse: 'collapse', textAlign: 'left', backgroundColor: '#fff', borderRadius: '4px', overflow: 'hidden' }}>
-                  <thead style={{ backgroundColor: '#e4f0f6', color: '#172b4d' }}>
+                  <table style={{ width: '100%', minWidth: '450px', borderCollapse: 'collapse', textAlign: 'left', backgroundColor: isDark ? '#0f172a' : '#fff', color: isDark ? '#f8fafc' : '#172b4d', borderRadius: '4px', overflow: 'hidden' }}>
+                  <thead style={{ backgroundColor: isDark ? '#334155' : '#e4f0f6', color: isDark ? '#f8fafc' : '#172b4d' }}>
                     <tr>
                       <th style={{ padding: '10px' }}>İsim</th>
                       <th style={{ padding: '10px' }}>E-posta</th>
@@ -1190,7 +1207,7 @@ export default function Board() {
                   </thead>
                   <tbody>
                     {usersList.map(u => (
-                      <tr key={u.id} style={{ borderBottom: '1px solid #ebecf0' }}>
+                      <tr key={u.id} style={{ borderBottom: isDark ? '1px solid #1e293b' : '1px solid #ebecf0' }}>
                         <td style={{ padding: '10px' }}>{u.name}</td>
                         <td style={{ padding: '10px' }}>{u.email}</td>
                         <td style={{ padding: '10px' }}>
@@ -1198,7 +1215,7 @@ export default function Board() {
                             value={u.role}
                             onChange={(e) => handleRoleChange(u.id, e.target.value)}
                             disabled={u.role === 'owner'}
-                            style={{ padding: '5px', borderRadius: '4px', border: '1px solid #ccc' }}
+                            style={{ padding: '5px', borderRadius: '4px', border: isDark ? '1px solid #334155' : '1px solid #ccc', background: isDark ? '#1e293b' : '#fff', color: isDark ? '#f8fafc' : '#172b4d' }}
                           >
                             <option value="user">User</option>
                             <option value="admin">Admin</option>
@@ -1229,14 +1246,14 @@ export default function Board() {
       {showWorkspaceModal && (
         <div style={{
           position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
-          backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
+          backgroundColor: isDark ? 'rgba(0,0,0,0.75)' : 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
         }}>
           <div style={{
-            background: '#f4f5f7', padding: '24px', borderRadius: '8px', width: '90%', maxWidth: '420px', display: 'flex', flexDirection: 'column', gap: '15px'
+            background: isDark ? '#1e293b' : '#f4f5f7', border: isDark ? '1px solid #334155' : 'none', padding: '24px', borderRadius: '8px', width: '90%', maxWidth: '420px', display: 'flex', flexDirection: 'column', gap: '15px'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ margin: 0, color: '#172b4d' }}>🏢 Çalışma Alanı</h3>
-              <button onClick={() => setShowWorkspaceModal(false)} style={{ background: 'transparent', border: 'none', fontSize: '18px', cursor: 'pointer', color: '#5e6c84' }}>✖</button>
+              <h3 style={{ margin: 0, color: isDark ? '#f8fafc' : '#172b4d' }}>🏢 Çalışma Alanı</h3>
+              <button onClick={() => setShowWorkspaceModal(false)} style={{ background: 'transparent', border: 'none', fontSize: '18px', cursor: 'pointer', color: isDark ? '#94a3b8' : '#5e6c84' }}>✖</button>
             </div>
 
             {/* Tab Butonları */}
@@ -1244,7 +1261,7 @@ export default function Board() {
               <button 
                 onClick={() => setWorkspaceTab('create')}
                 style={{ flex: 1, padding: '8px', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold',
-                  background: workspaceTab === 'create' ? '#6c5ce7' : '#dfe6e9', color: workspaceTab === 'create' ? '#fff' : '#2d3436'
+                  background: workspaceTab === 'create' ? '#6c5ce7' : (isDark ? '#334155' : '#dfe6e9'), color: workspaceTab === 'create' ? '#fff' : (isDark ? '#cbd5e1' : '#2d3436')
                 }}
               >
                 ✨ Yeni Oluştur
@@ -1252,7 +1269,7 @@ export default function Board() {
               <button 
                 onClick={() => setWorkspaceTab('join')}
                 style={{ flex: 1, padding: '8px', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold',
-                  background: workspaceTab === 'join' ? '#6c5ce7' : '#dfe6e9', color: workspaceTab === 'join' ? '#fff' : '#2d3436'
+                  background: workspaceTab === 'join' ? '#6c5ce7' : (isDark ? '#334155' : '#dfe6e9'), color: workspaceTab === 'join' ? '#fff' : (isDark ? '#cbd5e1' : '#2d3436')
                 }}
               >
                 🔗 Alana Katıl
@@ -1265,13 +1282,13 @@ export default function Board() {
                   type="text" placeholder="Çalışma Alanı Adı" value={newWsName}
                   onChange={(e) => setNewWsName(e.target.value)}
                   autoComplete="off"
-                  style={{ padding: '10px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '14px' }}
+                  style={{ padding: '10px', borderRadius: '4px', border: isDark ? '1px solid #334155' : '1px solid #ccc', background: isDark ? '#0f172a' : '#fff', color: isDark ? '#f8fafc' : '#000', fontSize: '14px' }}
                 />
                 <input 
                   type="password" placeholder="Şifre (min 4 karakter)" value={newWsPassword}
                   onChange={(e) => setNewWsPassword(e.target.value)}
                   autoComplete="new-password"
-                  style={{ padding: '10px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '14px' }}
+                  style={{ padding: '10px', borderRadius: '4px', border: isDark ? '1px solid #334155' : '1px solid #ccc', background: isDark ? '#0f172a' : '#fff', color: isDark ? '#f8fafc' : '#000', fontSize: '14px' }}
                 />
                 <button 
                   onClick={handleCreateWorkspace}
@@ -1286,13 +1303,13 @@ export default function Board() {
                   type="text" placeholder="Davet Kodu (Örn: A3F2B1C9)" value={joinWsId}
                   onChange={(e) => setJoinWsId(e.target.value)}
                   autoComplete="off"
-                  style={{ padding: '10px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '14px' }}
+                  style={{ padding: '10px', borderRadius: '4px', border: isDark ? '1px solid #334155' : '1px solid #ccc', background: isDark ? '#0f172a' : '#fff', color: isDark ? '#f8fafc' : '#000', fontSize: '14px' }}
                 />
                 <input 
                   type="password" placeholder="Şifre" value={joinWsPassword}
                   onChange={(e) => setJoinWsPassword(e.target.value)}
                   autoComplete="new-password"
-                  style={{ padding: '10px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '14px' }}
+                  style={{ padding: '10px', borderRadius: '4px', border: isDark ? '1px solid #334155' : '1px solid #ccc', background: isDark ? '#0f172a' : '#fff', color: isDark ? '#f8fafc' : '#000', fontSize: '14px' }}
                 />
                 <button 
                   onClick={handleJoinWorkspace}
@@ -1310,20 +1327,20 @@ export default function Board() {
       {showWsMembersModal && (
         <div style={{
           position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
-          backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
+          backgroundColor: isDark ? 'rgba(0,0,0,0.75)' : 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
         }}>
           <div style={{
-            background: '#f4f5f7', padding: '24px', borderRadius: '8px', width: '90%', maxWidth: '500px', maxHeight: '70vh', display: 'flex', flexDirection: 'column', gap: '15px'
+            background: isDark ? '#1e293b' : '#f4f5f7', border: isDark ? '1px solid #334155' : 'none', padding: '24px', borderRadius: '8px', width: '90%', maxWidth: '500px', maxHeight: '70vh', display: 'flex', flexDirection: 'column', gap: '15px'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                <h3 style={{ margin: 0, color: '#172b4d' }}>👥 Çalışma Alanı Üyeleri</h3>
+                <h3 style={{ margin: 0, color: isDark ? '#f8fafc' : '#172b4d' }}>👥 Çalışma Alanı Üyeleri</h3>
                 {wsCurrentInviteCode && (
                   <span 
                     onClick={() => { navigator.clipboard.writeText(wsCurrentInviteCode); showToast("Davet kodu kopyalandı!", "success"); }}
                     title="Kopyalamak için tıklayın"
                     style={{ 
-                      fontSize: '12px', background: '#e8e6fb', color: '#6c5ce7', 
+                      fontSize: '12px', background: isDark ? '#2e1065' : '#e8e6fb', color: isDark ? '#c4b5fd' : '#6c5ce7', 
                       padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontFamily: 'monospace' 
                     }}
                   >
@@ -1331,24 +1348,24 @@ export default function Board() {
                   </span>
                 )}
               </div>
-              <button onClick={() => setShowWsMembersModal(false)} style={{ background: 'transparent', border: 'none', fontSize: '18px', cursor: 'pointer', color: '#5e6c84' }}>✖</button>
+              <button onClick={() => setShowWsMembersModal(false)} style={{ background: 'transparent', border: 'none', fontSize: '18px', cursor: 'pointer', color: isDark ? '#94a3b8' : '#5e6c84' }}>✖</button>
             </div>
 
             <div style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {wsMembersList.length === 0 ? (
-                <p style={{ color: '#5e6c84', textAlign: 'center' }}>Üye bulunamadı.</p>
+                <p style={{ color: isDark ? '#94a3b8' : '#5e6c84', textAlign: 'center' }}>Üye bulunamadı.</p>
               ) : (
                 wsMembersList.map(m => (
-                  <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px', background: '#fff', borderRadius: '4px', boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>
+                  <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px', background: isDark ? '#0f172a' : '#fff', border: isDark ? '1px solid #334155' : 'none', borderRadius: '4px', boxShadow: isDark ? '0 1px 2px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.1)' }}>
                     <div>
-                      <strong>{m.user?.name}</strong>
-                      <small style={{ display: 'block', color: '#888', fontSize: '11px' }}>{m.user?.email}</small>
+                      <strong style={{ color: isDark ? '#f8fafc' : '#172b4d' }}>{m.user?.name}</strong>
+                      <small style={{ display: 'block', color: isDark ? '#94a3b8' : '#888', fontSize: '11px' }}>{m.user?.email}</small>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <span style={{ 
                         fontSize: '11px', padding: '3px 8px', borderRadius: '3px', fontWeight: 'bold',
-                        background: m.role === 'ADMIN' ? '#ffeaa7' : '#dfe6e9',
-                        color: m.role === 'ADMIN' ? '#d35400' : '#636e72'
+                        background: m.role === 'ADMIN' ? (isDark ? '#78350f' : '#ffeaa7') : (isDark ? '#334155' : '#dfe6e9'),
+                        color: m.role === 'ADMIN' ? (isDark ? '#fde68a' : '#d35400') : (isDark ? '#cbd5e1' : '#636e72')
                       }}>
                         {m.role === 'ADMIN' ? '⭐ Admin' : '👤 Üye'}
                       </span>
@@ -1372,41 +1389,41 @@ export default function Board() {
       {showAccountModal && (
         <div style={{
           position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
-          backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
+          backgroundColor: isDark ? 'rgba(0,0,0,0.75)' : 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
         }}>
           <div style={{
-            background: '#f4f5f7', padding: '24px', borderRadius: '8px', width: '90%', maxWidth: '420px', display: 'flex', flexDirection: 'column', gap: '15px'
+            background: isDark ? '#1e293b' : '#f4f5f7', border: isDark ? '1px solid #334155' : 'none', padding: '24px', borderRadius: '8px', width: '90%', maxWidth: '420px', display: 'flex', flexDirection: 'column', gap: '15px'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ margin: 0, color: '#172b4d' }}>⚙️ Hesap Yönetimi</h3>
-              <button onClick={() => setShowAccountModal(false)} style={{ background: 'transparent', border: 'none', fontSize: '18px', cursor: 'pointer', color: '#5e6c84' }}>✖</button>
+              <h3 style={{ margin: 0, color: isDark ? '#f8fafc' : '#172b4d' }}>⚙️ Hesap Yönetimi</h3>
+              <button onClick={() => setShowAccountModal(false)} style={{ background: 'transparent', border: 'none', fontSize: '18px', cursor: 'pointer', color: isDark ? '#94a3b8' : '#5e6c84' }}>✖</button>
             </div>
 
-            <div style={{ background: '#fff', padding: '15px', borderRadius: '6px', border: '1px solid #dfe1e6' }}>
+            <div style={{ background: isDark ? '#0f172a' : '#fff', padding: '15px', borderRadius: '6px', border: isDark ? '1px solid #334155' : '1px solid #dfe1e6' }}>
               <div style={{ marginBottom: '8px' }}>
-                <span style={{ fontSize: '12px', color: '#5e6c84', display: 'block' }}>Kullanıcı Adı</span>
-                <strong style={{ fontSize: '14px', color: '#172b4d' }}>{currentUser.name}</strong>
+                <span style={{ fontSize: '12px', color: isDark ? '#94a3b8' : '#5e6c84', display: 'block' }}>Kullanıcı Adı</span>
+                <strong style={{ fontSize: '14px', color: isDark ? '#f8fafc' : '#172b4d' }}>{currentUser.name}</strong>
               </div>
               <div style={{ marginBottom: '8px' }}>
-                <span style={{ fontSize: '12px', color: '#5e6c84', display: 'block' }}>E-posta</span>
-                <strong style={{ fontSize: '14px', color: '#172b4d' }}>{user?.email || '-'}</strong>
+                <span style={{ fontSize: '12px', color: isDark ? '#94a3b8' : '#5e6c84', display: 'block' }}>E-posta</span>
+                <strong style={{ fontSize: '14px', color: isDark ? '#f8fafc' : '#172b4d' }}>{user?.email || '-'}</strong>
               </div>
               <div>
-                <span style={{ fontSize: '12px', color: '#5e6c84', display: 'block' }}>Yetki Seviyesi</span>
-                <strong style={{ fontSize: '14px', color: '#0052cc' }}>{currentUser.role}</strong>
+                <span style={{ fontSize: '12px', color: isDark ? '#94a3b8' : '#5e6c84', display: 'block' }}>Yetki Seviyesi</span>
+                <strong style={{ fontSize: '14px', color: isDark ? '#60a5fa' : '#0052cc' }}>{currentUser.role}</strong>
               </div>
             </div>
 
-            <div style={{ background: '#fff0f0', padding: '15px', borderRadius: '6px', border: '1px solid #ffbdad' }}>
-              <h4 style={{ margin: '0 0 8px 0', color: '#bf2600', fontSize: '14px' }}>⚠️ Hesabı Sil</h4>
-              <p style={{ margin: '0 0 12px 0', fontSize: '12px', color: '#5e6c84' }}>
+            <div style={{ background: isDark ? '#3b1219' : '#fff0f0', padding: '15px', borderRadius: '6px', border: isDark ? '1px solid #7f1d1d' : '1px solid #ffbdad' }}>
+              <h4 style={{ margin: '0 0 8px 0', color: isDark ? '#fca5a5' : '#bf2600', fontSize: '14px' }}>⚠️ Hesabı Sil</h4>
+              <p style={{ margin: '0 0 12px 0', fontSize: '12px', color: isDark ? '#f87171' : '#5e6c84' }}>
                 Hesabınızı sildiğinizde oluşturduğunuz tüm veriler kalıcı olarak temizlenecektir.
               </p>
 
               {deleteAccountError && (
                 <div style={{
-                  backgroundColor: '#ffebe6', color: '#bf2600', padding: '8px 12px', borderRadius: '4px',
-                  border: '1px solid #ffbdad', marginBottom: '10px', fontSize: '12px', fontWeight: 'bold'
+                  backgroundColor: isDark ? '#450a0a' : '#ffebe6', color: isDark ? '#fca5a5' : '#bf2600', padding: '8px 12px', borderRadius: '4px',
+                  border: isDark ? '1px solid #7f1d1d' : '1px solid #ffbdad', marginBottom: '10px', fontSize: '12px', fontWeight: 'bold'
                 }}>
                   {deleteAccountError}
                 </div>
@@ -1419,7 +1436,7 @@ export default function Board() {
                   value={deleteAccountPassword}
                   onChange={(e) => setDeleteAccountPassword(e.target.value)}
                   autoComplete="current-password"
-                  style={{ padding: '8px 10px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '13px' }}
+                  style={{ padding: '8px 10px', borderRadius: '4px', border: isDark ? '1px solid #7f1d1d' : '1px solid #ccc', background: isDark ? '#0f172a' : '#fff', color: isDark ? '#f8fafc' : '#000', fontSize: '13px' }}
                 />
                 <button 
                   type="submit"

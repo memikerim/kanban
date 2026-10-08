@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/axios';
+import ThemeToggle from '../components/ThemeToggle';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -26,6 +27,9 @@ export default function ForgotPassword() {
 
   return (
     <div className="auth-container">
+      <div style={{ position: 'absolute', top: '20px', right: '20px' }}>
+        <ThemeToggle />
+      </div>
       <form onSubmit={handleSubmit} className="auth-form">
         <h2>Şifremi Unuttum</h2>
         <p style={{ marginBottom: '15px', fontSize: '14px', color: '#555' }}>

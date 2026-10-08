@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
+import ThemeToggle from '../components/ThemeToggle';
 
 export default function ResetPassword() {
   const { token } = useParams(); // URL'deki token'ı yakalar
@@ -36,6 +37,9 @@ export default function ResetPassword() {
 
   return (
     <div className="auth-container">
+      <div style={{ position: 'absolute', top: '20px', right: '20px' }}>
+        <ThemeToggle />
+      </div>
       <form onSubmit={handleSubmit} className="auth-form">
         <h2>Yeni Şifre Belirle</h2>
         
