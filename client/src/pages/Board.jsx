@@ -60,6 +60,13 @@ export default function Board() {
     try {
       await api.post('/auth/delete-account', { password: deleteAccountPassword });
       setShowAccountModal(false);
+      localStorage.removeItem('token'); 
+      localStorage.removeItem('auth-storage'); 
+      localStorage.removeItem('remember_me');
+      sessionStorage.removeItem('token');
+      sessionStorage.removeItem('auth-storage');
+      sessionStorage.removeItem('remember_me');
+      delete api.defaults.headers.common['Authorization'];
       logout();
       navigate('/login');
     } catch (error) {
@@ -347,6 +354,10 @@ export default function Board() {
     try { logout(); } catch(e) {} 
     localStorage.removeItem('token'); 
     localStorage.removeItem('auth-storage'); 
+    localStorage.removeItem('remember_me');
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('auth-storage');
+    sessionStorage.removeItem('remember_me');
     delete api.defaults.headers.common['Authorization'];
     navigate('/login'); 
   };

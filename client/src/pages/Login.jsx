@@ -6,6 +6,7 @@ import useAuthStore from '../store/useAuthStore';
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false); // Varsayılan olarak kapalı: Kullanıcı seçmedikçe oturum açık kalmaz
   const [errorMessage, setErrorMessage] = useState(''); 
   
   const login = useAuthStore((state) => state.login);
@@ -21,12 +22,24 @@ export default function Login() {
       const token = response.data.token;
       const user = response.data.user;
 
-      // KESİN ÇÖZÜM: Token'ı her yere ZORLA kendimiz kaydediyoruz!
-      localStorage.setItem('token', token);
+      if (rememberMe) {
+        // Oturumu Açık Tut seçildiyse kalıcı olarak localStorage'a yaz
+        localStorage.setItem('remember_me', 'true');
+        localStorage.setItem('token', token);
+        sessionStorage.removeItem('token');
+        sessionStorage.removeItem('auth-storage');
+      } else {
+        // Oturumu Açık Tut seçilmediyse SADECE aktif sekme/tarayıcı süresince (sessionStorage) tut
+        localStorage.setItem('remember_me', 'false');
+        localStorage.removeItem('token');
+        localStorage.removeItem('auth-storage');
+        sessionStorage.setItem('token', token);
+      }
+      
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       
-      // Zustand'ı da çalıştır (hata verirse bile uygulamayı çökertmemesi için try-catch içinde)
-      try { login(user, token); } catch(e) { console.log('Zustand uyarısı:', e); }
+      // Zustand store'u güncelle
+      try { login(user, token, rememberMe); } catch(e) { console.log('Zustand uyarısı:', e); }
       
       navigate('/board');
     } catch (error) {
@@ -69,9 +82,24 @@ export default function Login() {
             required 
             style={{ padding: '10px', borderRadius: '4px', border: '1px solid #dfe1e6', fontSize: '14px' }}
           />
+
+          {/* Oturumumu Açık Tut Checkbox ve Şifremi Unuttum */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '0' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '7px', cursor: 'pointer', fontSize: '13px', color: '#172b4d', userSelect: 'none' }}>
+              <input 
+                type="checkbox" 
+                checked={rememberMe} 
+                onChange={(e) => setRememberMe(e.target.checked)} 
+                style={{ width: '15px', height: '15px', cursor: 'pointer', accentColor: '#0052cc' }}
+              />
+              <span>Oturumumu açık tut</span>
+            </label>
+            <Link to="/forgot-password" style={{ color: '#0052cc', textDecoration: 'none', fontSize: '12px' }}>Şifremi Unuttum</Link>
+          </div>
+
           <button 
             type="submit" 
-            style={{ padding: '12px', backgroundColor: '#5aac44', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '15px' }}
+            style={{ padding: '12px', backgroundColor: '#5aac44', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '15px', marginTop: '5px' }}
           >
             Giriş Yap
           </button>
@@ -79,7 +107,6 @@ export default function Login() {
 
         <div style={{ marginTop: '20px', textAlign: 'center', fontSize: '13px' }}>
           <p>Hesabın yok mu? <Link to="/register" style={{ color: '#0052cc', textDecoration: 'none', fontWeight: 'bold' }}>Kayıt Ol</Link></p>
-          <Link to="/forgot-password" style={{ color: '#0052cc', textDecoration: 'none' }}>Şifremi Unuttum</Link>
         </div>
       </div>
     </div>

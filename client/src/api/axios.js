@@ -8,16 +8,30 @@ const api = axios.create({
 
 // ZORUNLU GÜVENLİK (INTERCEPTOR): Her API isteğinden önce araya gir ve token'ı ekle
 api.interceptors.request.use((config) => {
-  let token = localStorage.getItem('token');
+  // 1. Önce aktif tarayıcı sekmesi oturumuna (sessionStorage) bak
+  let token = sessionStorage.getItem('token');
   
-  // Eğer normal localStorage'da yoksa Zustand'ın deposuna bak
   if (!token) {
-    const authStorage = localStorage.getItem('auth-storage');
-    if (authStorage) {
+    const sessionAuth = sessionStorage.getItem('auth-storage');
+    if (sessionAuth) {
       try {
-        const parsed = JSON.parse(authStorage);
+        const parsed = JSON.parse(sessionAuth);
         token = parsed?.state?.token;
       } catch (e) {}
+    }
+  }
+
+  // 2. Eğer sessionStorage'da yoksa ve kullanıcı "Oturumumu açık tut" seçtiyse localStorage'a bak
+  if (!token && localStorage.getItem('remember_me') === 'true') {
+    token = localStorage.getItem('token');
+    if (!token) {
+      const authStorage = localStorage.getItem('auth-storage');
+      if (authStorage) {
+        try {
+          const parsed = JSON.parse(authStorage);
+          token = parsed?.state?.token;
+        } catch (e) {}
+      }
     }
   }
 
