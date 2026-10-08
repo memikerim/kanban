@@ -196,14 +196,18 @@ body {
 }
 
 .sidebar {
-  width: 260px;
+  width: 275px;
+  min-width: 275px;
   background-color: var(--bg-sidebar);
   border-right: 1px solid var(--border-color);
-  padding: 1.5rem;
+  padding: 1.25rem 1rem;
   color: var(--text-main);
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 12px;
+  height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
   transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
@@ -213,18 +217,72 @@ body {
   color: var(--text-main);
 }
 
-.sidebar ul {
+.sidebar ul,
+.sidebar-list {
   list-style: none;
-  flex-grow: 1;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sidebar-workspace-list {
+  max-height: 160px;
   overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 6px;
+  flex-shrink: 0;
+}
+
+.sidebar-project-list {
+  flex: 1 1 0;
+  min-height: 120px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 6px;
+  padding-bottom: 8px;
+}
+
+.sidebar-workspace-list::-webkit-scrollbar,
+.sidebar-project-list::-webkit-scrollbar,
+.sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-workspace-list::-webkit-scrollbar-track,
+.sidebar-project-list::-webkit-scrollbar-track,
+.sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-workspace-list::-webkit-scrollbar-thumb,
+.sidebar-project-list::-webkit-scrollbar-thumb,
+.sidebar::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb);
+  border-radius: 9999px;
+}
+
+.sidebar-workspace-list::-webkit-scrollbar-thumb:hover,
+.sidebar-project-list::-webkit-scrollbar-thumb:hover,
+.sidebar::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-thumb-hover);
+}
+
+.sidebar-workspace-list::-webkit-scrollbar-button,
+.sidebar-project-list::-webkit-scrollbar-button,
+.sidebar::-webkit-scrollbar-button {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
 .sidebar li {
   background-color: var(--bg-sidebar-item);
   color: var(--text-main);
-  padding: 10px;
-  margin-bottom: 8px;
-  border-radius: 6px;
+  padding: 10px 12px;
+  margin-bottom: 0;
+  border-radius: 8px;
   border: 1px solid var(--border-color);
   cursor: pointer;
   transition: all 0.15s ease;
@@ -232,12 +290,16 @@ body {
 
 .sidebar li:hover {
   background-color: var(--bg-sidebar-item-hover);
+  border-color: #0052cc;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.06);
 }
 
 .sidebar li.active {
   background-color: var(--bg-sidebar-item-active);
   font-weight: bold;
   border-color: #0052cc;
+  box-shadow: 0 0 0 1px #0052cc inset;
 }
 
 .new-project-box {
@@ -391,9 +453,17 @@ body {
   /* Sol menü telefonda üstte yer alsın */
   .sidebar {
     width: 100% !important;
+    min-width: 100% !important;
+    height: auto !important;
     min-height: auto !important;
     border-right: none !important;
     border-bottom: 1px solid var(--border-color);
+    padding: 1rem !important;
+  }
+
+  .sidebar-workspace-list,
+  .sidebar-project-list {
+    max-height: none !important;
   }
   
   /* Telefondan projeye girilmediyse (menüdeysek) sağdaki boş pano kısmını gizle */

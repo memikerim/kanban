@@ -636,23 +636,24 @@ export default function Board() {
         </div>
       )}
 
-      <aside className={`sidebar ${currentProjectId ? 'hidden-mobile' : ''}`} style={{ overflowY: 'auto' }}>
+      <aside className={`sidebar ${currentProjectId ? 'hidden-mobile' : ''}`}>
         {/* ÇALIŞMA ALANLARI */}
         <h3 style={{ fontSize: '14px', marginBottom: '5px' }}>🏢 Çalışma Alanları</h3>
-        <ul>
+        <ul className="sidebar-workspace-list">
           {workspaces.map((ws) => (
             <li 
               key={ws.id} 
               className={currentWorkspaceId === ws.id ? 'active' : ''}
               onClick={() => handleSelectWorkspace(ws)}
-              style={{ display: 'flex', flexDirection: 'column', gap: '4px', padding: '8px', cursor: 'pointer' }}
+              style={{ display: 'flex', flexDirection: 'column', gap: '6px', padding: '10px 12px', cursor: 'pointer' }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                <span style={{ fontWeight: 'bold', fontSize: '13px' }}>{ws.name}</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', gap: '8px' }}>
+                <span style={{ fontWeight: 'bold', fontSize: '13px', wordBreak: 'break-word', flex: 1, minWidth: 0 }}>{ws.name}</span>
                 <small 
                   onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(ws.inviteCode); showToast("Davet kodu kopyalandı!", "success"); }}
                   title="Kopyalamak için tıklayın"
                   style={{ 
+                    flexShrink: 0,
                     fontSize: '10px', color: isDark ? '#c4b5fd' : '#6c5ce7', background: isDark ? '#2e1065' : '#e8e6fb', 
                     padding: '2px 6px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontFamily: 'monospace'
                   }}
@@ -660,7 +661,7 @@ export default function Board() {
                   {ws.inviteCode} 📋
                 </small>
               </div>
-              <div style={{ display: 'flex', gap: '5px', marginTop: '3px' }}>
+              <div style={{ display: 'flex', gap: '5px', marginTop: '2px', alignItems: 'center' }}>
                 <button
                   onClick={(e) => { e.stopPropagation(); handleShowWsMembers(ws); setCurrentWorkspaceId(ws.id); }}
                   style={{ fontSize: '10px', padding: '3px 6px', background: isDark ? '#334155' : '#e4f0f6', color: isDark ? '#93c5fd' : '#0079bf', border: 'none', borderRadius: '3px', cursor: 'pointer' }}
@@ -682,9 +683,9 @@ export default function Board() {
         </button>
 
         {/* PROJELER */}
-        <hr style={{ border: 'none', borderTop: isDark ? '1px solid #334155' : '1px solid #e2e8f0', margin: '10px 0' }} />
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3 style={{ fontSize: '14px', marginBottom: '5px' }}>
+        <hr style={{ border: 'none', borderTop: isDark ? '1px solid #334155' : '1px solid #e2e8f0', margin: '6px 0' }} />
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+          <h3 style={{ fontSize: '14px', marginBottom: 0 }}>
             {currentWorkspaceId ? '📁 Alan Projeleri' : '📁 Projelerim'}
           </h3>
           {currentWorkspaceId && (
@@ -696,22 +697,47 @@ export default function Board() {
             </button>
           )}
         </div>
-        <ul>
+        <ul className="sidebar-project-list">
           {projects.map((project) => (
             <li 
               key={project.id} 
               className={currentProjectId === project.id ? 'active' : ''}
               onClick={() => setCurrentProjectId(project.id)}
-              style={{ display: 'flex', flexDirection: 'column', gap: '5px', padding: '10px' }}
+              style={{ display: 'flex', flexDirection: 'column', gap: '6px', padding: '10px 12px' }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                <span>{project.name}</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', gap: '8px' }}>
+                <span style={{ fontWeight: '500', fontSize: '13.5px', wordBreak: 'break-word', flex: 1, minWidth: 0, lineHeight: '1.3' }}>
+                  {project.name}
+                </span>
                 <button 
                   onClick={(e) => triggerDeleteProject(project.id, e)}
-                  style={{ background: 'transparent', border: 'none', color: '#ff9999', cursor: 'pointer', fontWeight: 'bold' }}
+                  style={{ 
+                    flexShrink: 0,
+                    width: '22px',
+                    height: '22px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: isDark ? 'rgba(239, 68, 68, 0.18)' : 'rgba(239, 68, 68, 0.1)', 
+                    border: 'none', 
+                    color: '#ef4444', 
+                    cursor: 'pointer', 
+                    fontWeight: 'bold',
+                    fontSize: '11px',
+                    borderRadius: '4px',
+                    transition: 'all 0.15s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#ef4444';
+                    e.currentTarget.style.color = '#ffffff';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = isDark ? 'rgba(239, 68, 68, 0.18)' : 'rgba(239, 68, 68, 0.1)';
+                    e.currentTarget.style.color = '#ef4444';
+                  }}
                   title="Projeyi Sil"
                 >
-                  X
+                  ✕
                 </button>
               </div>
               {project.user && (
