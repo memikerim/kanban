@@ -969,8 +969,14 @@ export default function Board() {
                                   alignItems: 'flex-start',
                                   gap: '8px',
                                   cursor: 'pointer',
-                                  border: isDark ? '1px solid #334155' : '1px solid #e2e8f0',
-                                  borderLeft: task.color ? `6px solid ${task.color}` : (isDoneColumn ? '6px solid #36b37e' : (isDark ? '1px solid #334155' : 'none')), 
+                                  borderTop: isDark ? '1px solid #334155' : '1px solid #e2e8f0',
+                                  borderRight: isDark ? '1px solid #334155' : '1px solid #e2e8f0',
+                                  borderBottom: isDark ? '1px solid #334155' : '1px solid #e2e8f0',
+                                  borderLeft: task.color 
+                                    ? `6px solid ${task.color}` 
+                                    : (isDoneColumn 
+                                        ? '6px solid #36b37e' 
+                                        : (isDark ? '1px solid #334155' : '1px solid #e2e8f0')), 
                                   ...provided.draggableProps.style,
                                 }}
                               >
