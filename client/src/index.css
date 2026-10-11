@@ -212,8 +212,6 @@ body {
 }
 
 .sidebar h3 {
-  border-bottom: 1px solid var(--border-color);
-  padding-bottom: 10px;
   color: var(--text-main);
 }
 
@@ -231,7 +229,7 @@ body {
   max-height: 160px;
   overflow-y: auto;
   overflow-x: hidden;
-  padding-right: 6px;
+  padding: 4px 6px 4px 2px;
   flex-shrink: 0;
 }
 
@@ -240,8 +238,7 @@ body {
   min-height: 120px;
   overflow-y: auto;
   overflow-x: hidden;
-  padding-right: 6px;
-  padding-bottom: 8px;
+  padding: 4px 6px 8px 2px;
 }
 
 .sidebar-workspace-list::-webkit-scrollbar,
@@ -291,8 +288,7 @@ body {
 .sidebar li:hover {
   background-color: var(--bg-sidebar-item-hover);
   border-color: #0052cc;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 6px rgba(0, 82, 204, 0.12);
 }
 
 .sidebar li.active {
