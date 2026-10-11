@@ -224,17 +224,14 @@ export default function Board() {
         if (Array.isArray(wsResponse.data)) {
           setWorkspaces(wsResponse.data);
           
-          // Sadece sidebar'daki proje listesini güncelle, açık board'a dokunma
-          if (currentWorkspaceId && !currentProjectId) {
-             const updatedWs = wsResponse.data.find(w => w.id === currentWorkspaceId);
-             if (updatedWs) {
-               setProjects(updatedWs.projects || []);
-             }
-          } else if (currentWorkspaceId && currentProjectId) {
-            // Board açıkken sadece sidebar proje listesini güncelle (columns/tasks korunur)
+          if (currentWorkspaceId) {
             const updatedWs = wsResponse.data.find(w => w.id === currentWorkspaceId);
             if (updatedWs) {
               setProjects(updatedWs.projects || []);
+              if (currentProjectId && !updatedWs.projects?.some(p => p.id === currentProjectId)) {
+                setCurrentProjectId(null);
+                setColumns([]);
+              }
             }
           }
         }
@@ -387,9 +384,29 @@ export default function Board() {
     if (confirmDialog.type === 'project') {
       try {
         await api.delete(`/projects/${confirmDialog.id}`);
-        if (currentProjectId === confirmDialog.id) setCurrentProjectId(null);
-        const response = await api.get('/projects');
-        setProjects(response.data);
+        if (currentProjectId === confirmDialog.id) {
+          setCurrentProjectId(null);
+          setColumns([]);
+        }
+
+        if (currentWorkspaceId) {
+          // Çalışma alanı (Workspace) içerisindeyken alan projeleri listesini koru ve güncelle
+          setProjects(prev => prev.filter(p => p.id !== confirmDialog.id));
+          const wsResponse = await api.get('/workspaces');
+          if (Array.isArray(wsResponse.data)) {
+            setWorkspaces(wsResponse.data);
+            const currentWs = wsResponse.data.find(w => w.id === currentWorkspaceId);
+            if (currentWs) {
+              setProjects(currentWs.projects || []);
+            }
+          }
+        } else {
+          // Kişisel projelerdeyken kişisel projeler listesini güncelle
+          setProjects(prev => prev.filter(p => p.id !== confirmDialog.id));
+          const response = await api.get('/projects');
+          setProjects(response.data);
+        }
+
         showToast("Proje başarıyla silindi.", "success");
       } catch (error) {
         if (error.response && error.response.status === 403) {
