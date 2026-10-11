@@ -13,8 +13,12 @@ const createWorkspace = async (req, res) => {
         const { name, password } = req.body;
         const userId = req.user.userId;
 
-        if (!name || !password) {
-            return res.status(400).json({ error: "Alan adı ve şifre zorunludur." });
+        if (!name || !name.trim()) {
+            return res.status(400).json({ error: "Çalışma alanı adı boş bırakılamaz." });
+        }
+
+        if (!password || !password.trim()) {
+            return res.status(400).json({ error: "Alan şifresi zorunludur." });
         }
 
         if (password.length < 4) {
@@ -211,9 +215,13 @@ const addProjectToWorkspace = async (req, res) => {
             return res.status(403).json({ error: "Bu çalışma alanının üyesi değilsiniz." });
         }
 
+        if (!name || !name.trim()) {
+            return res.status(400).json({ error: "Proje adı boş bırakılamaz." });
+        }
+
         const newProject = await prisma.project.create({
             data: {
-                name,
+                name: name.trim(),
                 userId: parseInt(userId),
                 workspaceId: parseInt(workspaceId),
                 columns: {

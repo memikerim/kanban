@@ -270,9 +270,14 @@ export default function Board() {
 
   // Yeni workspace oluştur
   const handleCreateWorkspace = async () => {
-    if (!newWsName || !newWsPassword) return showToast("İsim ve şifre gereklidir.", "error");
+    if (!newWsName || !newWsName.trim()) {
+      return showToast("Lütfen bir çalışma alanı adı girin.", "error");
+    }
+    if (!newWsPassword || !newWsPassword.trim()) {
+      return showToast("Lütfen çalışma alanı için bir şifre girin.", "error");
+    }
     try {
-      await api.post('/workspaces', { name: newWsName, password: newWsPassword });
+      await api.post('/workspaces', { name: newWsName.trim(), password: newWsPassword });
       showToast("Çalışma alanı oluşturuldu!", "success");
       setNewWsName(''); setNewWsPassword('');
       setShowWorkspaceModal(false);
@@ -344,29 +349,36 @@ export default function Board() {
 
   // Workspace'e proje ekle
   const handleAddWsProject = async () => {
-    if (!newProjectName || !currentWorkspaceId) return;
+    if (!newProjectName || !newProjectName.trim()) {
+      return showToast("Lütfen bir proje adı girin.", "error");
+    }
+    if (!currentWorkspaceId) return;
     try {
-      const response = await api.post('/workspaces/project', { workspaceId: currentWorkspaceId, name: newProjectName });
+      const response = await api.post('/workspaces/project', { workspaceId: currentWorkspaceId, name: newProjectName.trim() });
       setNewProjectName('');
       // Yeni projeyi mevcut listeye ekle (gereksiz API çağrısı yapmadan)
       const newProject = response.data;
       setProjects(prev => [...prev, newProject]);
       // Workspace listesini de güncelle
       await fetchWorkspaces();
+      showToast("Proje başarıyla eklendi!", "success");
     } catch (error) {
       showToast(error.response?.data?.error || "Proje eklenemedi.", "error");
     }
   };
 
   const handleAddProject = async () => {
-    if (!newProjectName) return;
+    if (!newProjectName || !newProjectName.trim()) {
+      return showToast("Lütfen bir proje adı girin.", "error");
+    }
     try {
-      await api.post('/projects', { name: newProjectName });
+      await api.post('/projects', { name: newProjectName.trim() });
       setNewProjectName('');
       const response = await api.get('/projects');
       setProjects(response.data);
+      showToast("Proje başarıyla eklendi!", "success");
     } catch (error) {
-      console.error('Proje eklenemedi:', error);
+      showToast(error.response?.data?.error || "Proje eklenemedi.", "error");
     }
   };
 
@@ -446,11 +458,13 @@ export default function Board() {
 
   const handleAddTask = async (columnId) => {
     const text = newTaskText[columnId];
-    if (!text || text.trim() === '') return;
+    if (!text || text.trim() === '') {
+      return showToast("Lütfen bir görev başlığı girin.", "error");
+    }
 
     try {
       await api.post('/tasks', {
-        title: text,
+        title: text.trim(),
         columnId: parseInt(columnId),
         projectId: currentProjectId
       });
@@ -458,15 +472,18 @@ export default function Board() {
       setNewTaskText(prev => ({ ...prev, [columnId]: '' }));
       await fetchBoardData();
     } catch (error) {
-      console.error('Görev eklenemedi:', error);
+      showToast(error.response?.data?.error || "Görev eklenemedi.", "error");
     }
   };
 
   const handleUpdateTask = async () => {
     if (!editingTask) return;
+    if (!editingTask.title || editingTask.title.trim() === '') {
+      return showToast("Görev başlığı boş bırakılamaz.", "error");
+    }
     try {
       await api.put(`/tasks/${editingTask.id}`, {
-        title: editingTask.title,
+        title: editingTask.title.trim(),
         description: editingTask.description,
         color: editingTask.color,
         dueDate: editingTask.dueDate ? editingTask.dueDate : null 
@@ -667,11 +684,19 @@ export default function Board() {
       
       {toastMessage && (
         <div style={{
-          position: 'absolute', top: '20px', left: '50%', transform: 'translateX(-50%)', zIndex: 9999,
-          backgroundColor: toastMessage.type === 'error' ? '#ffebe6' : '#e3fcef',
-          color: toastMessage.type === 'error' ? '#bf2600' : '#006644',
-          border: `1px solid ${toastMessage.type === 'error' ? '#ffbdad' : '#abf5d1'}`,
-          padding: '12px 24px', borderRadius: '4px', fontWeight: 'bold', boxShadow: '0 4px 8px rgba(0,0,0,0.1)'
+          position: 'fixed', top: '20px', left: '50%', transform: 'translateX(-50%)', zIndex: 9999,
+          backgroundColor: toastMessage.type === 'error' 
+            ? (isDark ? '#450a0a' : '#ffebe6') 
+            : (isDark ? '#064e3b' : '#e3fcef'),
+          color: toastMessage.type === 'error' 
+            ? (isDark ? '#fca5a5' : '#bf2600') 
+            : (isDark ? '#6ee7b7' : '#006644'),
+          border: `1px solid ${toastMessage.type === 'error' 
+            ? (isDark ? '#7f1d1d' : '#ffbdad') 
+            : (isDark ? '#065f46' : '#abf5d1')}`,
+          padding: '12px 24px', borderRadius: '6px', fontWeight: 'bold', 
+          boxShadow: isDark ? '0 4px 12px rgba(0,0,0,0.6)' : '0 4px 12px rgba(0,0,0,0.15)',
+          maxWidth: '90%', textAlign: 'center', fontSize: '13.5px'
         }}>
           {toastMessage.message}
         </div>
@@ -871,6 +896,7 @@ export default function Board() {
             placeholder="Yeni Proje Adı" 
             value={newProjectName} 
             onChange={(e) => setNewProjectName(e.target.value)} 
+            onKeyDown={(e) => e.key === 'Enter' && (currentWorkspaceId ? handleAddWsProject() : handleAddProject())}
           />
           <button onClick={currentWorkspaceId ? handleAddWsProject : handleAddProject}>+ Proje Ekle</button>
         </div>

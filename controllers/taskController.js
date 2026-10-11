@@ -16,13 +16,17 @@ const createTask = async (req, res) => {
         const { title, columnId, projectId } = req.body;
         const userId = req.user.userId;
 
+        if (!title || !title.trim()) {
+            return res.status(400).json({ error: "Görev başlığı boş bırakılamaz." });
+        }
+
         const tasksInColumn = await prisma.task.count({
             where: { columnId: parseInt(columnId) }
         });
 
         const newTask = await prisma.task.create({
             data: {
-                title,
+                title: title.trim(),
                 columnId: parseInt(columnId),
                 projectId: parseInt(projectId),
                 order: tasksInColumn,
@@ -32,7 +36,7 @@ const createTask = async (req, res) => {
         });
 
         // Hareketi kaydet
-        await logActivity(`"${title}" görevini ekledi.`, parseInt(projectId), parseInt(userId));
+        await logActivity(`"${title.trim()}" görevini ekledi.`, parseInt(projectId), parseInt(userId));
 
         const io = req.app.get('io');
         if (io) io.to(`project_${projectId}`).emit('board_updated');
@@ -49,13 +53,22 @@ const updateTaskDetails = async (req, res) => {
     const { title, description, color, dueDate } = req.body;
     const userId = req.user.userId;
 
+    if (title !== undefined && (!title || !title.trim())) {
+        return res.status(400).json({ error: "Görev başlığı boş bırakılamaz." });
+    }
+
     try {
         const task = await prisma.task.findUnique({ where: { id: parseInt(id) } });
         if (!task) return res.status(404).json({ error: "Görev bulunamadı" });
 
         const updatedTask = await prisma.task.update({
             where: { id: parseInt(id) },
-            data: { title, description, color, dueDate: dueDate ? new Date(dueDate) : null },
+            data: { 
+                title: title ? title.trim() : task.title, 
+                description, 
+                color, 
+                dueDate: dueDate ? new Date(dueDate) : null 
+            },
             include: { user: { select: { name: true } } }
         });
 

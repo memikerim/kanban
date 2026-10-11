@@ -24,9 +24,13 @@ const createProject = async (req, res) => {
       return res.status(400).json({ error: "Kullanıcı kimliği alınamadı." });
     }
 
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: "Proje adı boş bırakılamaz." });
+    }
+
     const newProject = await prisma.project.create({
       data: {
-        name: name,
+        name: name.trim(),
         userId: parseInt(userId),
         columns: {
           create: [
