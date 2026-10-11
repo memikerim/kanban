@@ -21,6 +21,7 @@ model User {
 
   // --- Workspace İlişkisi ---
   workspaceMembers WorkspaceMember[] // Kullanıcının dahil olduğu çalışma alanları
+  workspaceLogs    WorkspaceLog[]    // Kullanıcının çalışma alanlarında yaptığı hareketler
 }
 
 // --- YENİ: Çalışma Alanı (Workspace) Modeli ---
@@ -32,6 +33,7 @@ model Workspace {
   createdAt  DateTime           @default(now())
   members    WorkspaceMember[]  // Bu alana dahil üyeler
   projects   Project[]          // Bu alana ait projeler
+  logs       WorkspaceLog[]     // Alanın son değişiklikleri
 }
 
 // --- YENİ: Çalışma Alanı Üyelik Modeli ---
@@ -118,4 +120,15 @@ model ActivityLog {
   userId    Int
   user      User     @relation(fields: [userId], references: [id])
   createdAt DateTime @default(now())
+}
+
+// --- YENİ: Çalışma Alanı Son Değişiklikler (Alan isim/şifre/yetki/üyelik hareketleri) ---
+model WorkspaceLog {
+  id          Int       @id @default(autoincrement())
+  action      String    // Örn: "Alan şifresini değiştirdi."
+  workspaceId Int
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  userId      Int
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
 }

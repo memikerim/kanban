@@ -53,9 +53,16 @@ export default function Board() {
   const [joinWsId, setJoinWsId] = useState('');
   const [joinWsPassword, setJoinWsPassword] = useState('');
   const [showWsMembersModal, setShowWsMembersModal] = useState(false);
-  const [wsMembersList, setWsMembersList] = useState([]);
-  const [wsMyRole, setWsMyRole] = useState('');
-  const [wsCurrentInviteCode, setWsCurrentInviteCode] = useState('');
+  const [wsModalId, setWsModalId] = useState(null); // Üyeler/Ayarlar modalında açık olan alan
+  const [wsRenameInput, setWsRenameInput] = useState('');
+  const [wsNewPassword, setWsNewPassword] = useState('');
+  const [wsNewPasswordConfirm, setWsNewPasswordConfirm] = useState('');
+  const [wsLeaveWarning, setWsLeaveWarning] = useState('');
+
+  // --- Son Değişiklikler (Proje / Alan) ---
+  const [logsTab, setLogsTab] = useState('project'); // 'project' veya 'workspace'
+  const [workspaceLogs, setWorkspaceLogs] = useState([]);
+  const [logsWorkspaceId, setLogsWorkspaceId] = useState(null);
 
   // --- Account Modal State ---
   const [showAccountModal, setShowAccountModal] = useState(false);
@@ -216,9 +223,9 @@ export default function Board() {
     }
   }, [currentProjectId]);
 
-  // YENİ: Workspace anlık güncellemeleri dinleme (Proje ekleme/silme için)
+  // YENİ: Workspace anlık güncellemeleri dinleme (Proje ekleme/silme, alan adı/şifre/yetki/üyelik değişiklikleri)
   useEffect(() => {
-    const handleWorkspaceUpdated = async () => {
+    const handleWorkspaceUpdated = async (payload) => {
       try {
         const wsResponse = await api.get('/workspaces');
         if (Array.isArray(wsResponse.data)) {
@@ -232,8 +239,33 @@ export default function Board() {
                 setCurrentProjectId(null);
                 setColumns([]);
               }
+            } else {
+              // Kullanıcı alandan çıkarıldıysa veya alan silindiyse kişisel projelere dön
+              setCurrentWorkspaceId(null);
+              setCurrentProjectId(null);
+              setColumns([]);
+              try {
+                const response = await api.get('/projects');
+                setProjects(response.data);
+              } catch (e) {}
+              showToast("Artık bu çalışma alanının üyesi değilsiniz.", "error");
             }
           }
+
+          // Üyeler/Ayarlar modalı açıksa ve alana erişim kalmadıysa modalı kapat
+          if (wsModalId && !wsResponse.data.some(w => w.id === wsModalId)) {
+            setShowWsMembersModal(false);
+            setWsModalId(null);
+          }
+        }
+
+        // Alan son değişiklikleri açıksa anlık yenile
+        const changedWsId = payload?.workspaceId;
+        if (showLogs && logsWorkspaceId && (!changedWsId || changedWsId === logsWorkspaceId)) {
+          try {
+            const logsResponse = await api.get(`/workspaces/${logsWorkspaceId}/logs`);
+            setWorkspaceLogs(logsResponse.data);
+          } catch (e) {}
         }
       } catch (error) {
         console.error("Workspace güncellenirken hata:", error);
@@ -245,7 +277,7 @@ export default function Board() {
     return () => {
       socket.off('workspace_updated', handleWorkspaceUpdated);
     };
-  }, [currentWorkspaceId, currentProjectId]);
+  }, [currentWorkspaceId, currentProjectId, wsModalId, showLogs, logsWorkspaceId]);
 
   useEffect(() => {
     if (workspaces.length > 0) {
@@ -322,29 +354,148 @@ export default function Board() {
     }
   };
 
-  // Workspace üyelerini göster
+  // Workspace üyelerini / ayarlarını göster
   const handleShowWsMembers = (ws) => {
-    setWsMembersList(ws.members || []);
-    setWsMyRole(ws.myRole);
-    setWsCurrentInviteCode(ws.inviteCode);
+    setWsModalId(ws.id);
+    setWsRenameInput(ws.name || '');
+    setWsNewPassword('');
+    setWsNewPasswordConfirm('');
+    setWsLeaveWarning('');
     setShowWsMembersModal(true);
   };
 
+  // Modalda açık olan alan (workspaces state'inden türetilir → socket ile anlık güncellenir)
+  const wsModal = workspaces.find(w => w.id === wsModalId) || null;
+  const wsModalMembers = wsModal?.members || [];
+  const wsModalIsAdmin = wsModal?.myRole === 'ADMIN';
+  const wsModalAdminCount = wsModalMembers.filter(m => m.role === 'ADMIN').length;
+
   // Workspace'ten üye çıkar
   const handleKickMember = async (targetUserId) => {
+    if (!wsModalId) return;
     if (!window.confirm("Bu üyeyi çalışma alanından çıkarmak istediğinize emin misiniz?")) return;
     try {
-      await api.post('/workspaces/kick', { workspaceId: currentWorkspaceId, targetUserId });
+      await api.post('/workspaces/kick', { workspaceId: wsModalId, targetUserId });
       showToast("Üye çıkarıldı.", "success");
-      const wsResponse = await api.get('/workspaces');
-      if (Array.isArray(wsResponse.data)) {
-        setWorkspaces(wsResponse.data);
-        const updated = wsResponse.data.find(w => w.id === currentWorkspaceId);
-        if (updated) setWsMembersList(updated.members || []);
-      }
+      await fetchWorkspaces();
     } catch (error) {
       showToast(error.response?.data?.error || "Üye çıkarılamadı.", "error");
     }
+  };
+
+  // Üye yetkisini değiştir (Admin yap / Adminliği al)
+  const handleChangeMemberRole = async (targetUserId, role) => {
+    if (!wsModalId) return;
+    const isSelf = targetUserId === user?.id;
+    if (role === 'MEMBER' && wsModalAdminCount <= 1) {
+      const msg = "Alanda en az bir admin bulunmalıdır. Önce başka bir üyeyi admin olarak atayın.";
+      setWsLeaveWarning(msg);
+      return showToast(msg, "error");
+    }
+    const confirmText = role === 'ADMIN'
+      ? "Bu üyeyi admin yapmak istediğinize emin misiniz? Admin olan üye alan adını, şifresini ve yetkileri yönetebilir."
+      : (isSelf ? "Kendi adminlik yetkinizi bırakmak istediğinize emin misiniz?" : "Bu üyenin adminlik yetkisini kaldırmak istediğinize emin misiniz?");
+    if (!window.confirm(confirmText)) return;
+    try {
+      await api.put(`/workspaces/${wsModalId}/role`, { targetUserId, role });
+      setWsLeaveWarning('');
+      showToast(role === 'ADMIN' ? "Üye admin olarak atandı." : "Adminlik yetkisi kaldırıldı.", "success");
+      await fetchWorkspaces();
+    } catch (error) {
+      showToast(error.response?.data?.error || "Yetki değiştirilemedi.", "error");
+    }
+  };
+
+  // Alan adını değiştir (sadece admin)
+  const handleRenameWorkspace = async () => {
+    if (!wsModalId) return;
+    if (!wsRenameInput || !wsRenameInput.trim()) {
+      return showToast("Lütfen yeni bir çalışma alanı adı girin.", "error");
+    }
+    if (wsRenameInput.trim() === wsModal?.name) {
+      return showToast("Yeni alan adı mevcut adla aynı.", "error");
+    }
+    try {
+      await api.put(`/workspaces/${wsModalId}/name`, { name: wsRenameInput.trim() });
+      showToast("Alan adı güncellendi. Tüm üyeler bilgilendirildi.", "success");
+      await fetchWorkspaces();
+    } catch (error) {
+      showToast(error.response?.data?.error || "Alan adı değiştirilemedi.", "error");
+    }
+  };
+
+  // Alan şifresini değiştir (sadece admin)
+  const handleChangeWorkspacePassword = async () => {
+    if (!wsModalId) return;
+    if (!wsNewPassword || !wsNewPassword.trim()) {
+      return showToast("Lütfen yeni alan şifresini girin.", "error");
+    }
+    if (wsNewPassword.length < 4) {
+      return showToast("Alan şifresi en az 4 karakter olmalıdır.", "error");
+    }
+    if (wsNewPassword !== wsNewPasswordConfirm) {
+      return showToast("Yeni şifreler eşleşmiyor!", "error");
+    }
+    try {
+      await api.put(`/workspaces/${wsModalId}/password`, { newPassword: wsNewPassword });
+      setWsNewPassword('');
+      setWsNewPasswordConfirm('');
+      showToast("Alan şifresi güncellendi. Tüm üyeler bilgilendirildi.", "success");
+    } catch (error) {
+      showToast(error.response?.data?.error || "Alan şifresi değiştirilemedi.", "error");
+    }
+  };
+
+  // Alandan ayrıl
+  const handleLeaveWorkspace = async () => {
+    if (!wsModal) return;
+    const isLastMember = wsModalMembers.length <= 1;
+
+    // Tek admin ayrılmak istiyorsa önce yeni admin ataması gerekir
+    if (!isLastMember && wsModalIsAdmin && wsModalAdminCount <= 1) {
+      const msg = "Alandaki tek admin sizsiniz. Ayrılmadan önce aşağıdaki listeden başka bir üyeyi \"Admin Yap\" butonuyla admin olarak atamalısınız.";
+      setWsLeaveWarning(msg);
+      return showToast("Ayrılmadan önce yeni bir admin atamalısınız.", "error");
+    }
+
+    const confirmText = isLastMember
+      ? "Bu alandaki son üyesiniz. Ayrılırsanız çalışma alanı ve içindeki tüm projeler kalıcı olarak silinecek. Devam etmek istiyor musunuz?"
+      : `"${wsModal.name}" çalışma alanından ayrılmak istediğinize emin misiniz?`;
+    if (!window.confirm(confirmText)) return;
+
+    try {
+      const leavingId = wsModal.id;
+      const response = await api.post(`/workspaces/${leavingId}/leave`);
+      setShowWsMembersModal(false);
+      setWsModalId(null);
+      if (currentWorkspaceId === leavingId) {
+        await handleBackToPersonal();
+      }
+      await fetchWorkspaces();
+      showToast(response.data?.message || "Çalışma alanından ayrıldınız.", "success");
+    } catch (error) {
+      if (error.response?.data?.code === 'LAST_ADMIN') setWsLeaveWarning(error.response.data.error);
+      showToast(error.response?.data?.error || "Alandan ayrılınamadı.", "error");
+    }
+  };
+
+  // Alanın son değişikliklerini getir
+  const fetchWorkspaceLogs = async (wsId) => {
+    try {
+      const response = await api.get(`/workspaces/${wsId}/logs`);
+      setWorkspaceLogs(response.data);
+    } catch (error) {
+      setWorkspaceLogs([]);
+      console.error("Alan logları çekilemedi", error);
+    }
+  };
+
+  // Sol menüden doğrudan bir alanın son değişikliklerini aç (mobil dahil)
+  const handleOpenWorkspaceLogs = async (wsId) => {
+    setLogsWorkspaceId(wsId);
+    setLogsTab('workspace');
+    await fetchWorkspaceLogs(wsId);
+    setShowLogs(true);
   };
 
   // Workspace'e proje ekle
@@ -632,10 +783,21 @@ export default function Board() {
   };
 
   const handleShowLogs = async () => {
-    if (!currentProjectId) return;
+    if (!currentProjectId && !currentWorkspaceId) return;
     try {
-      const response = await api.get(`/projects/${currentProjectId}/logs`);
-      setLogs(response.data);
+      if (currentProjectId) {
+        const response = await api.get(`/projects/${currentProjectId}/logs`);
+        setLogs(response.data);
+      } else {
+        setLogs([]);
+      }
+      if (currentWorkspaceId) {
+        setLogsWorkspaceId(currentWorkspaceId);
+        await fetchWorkspaceLogs(currentWorkspaceId);
+      } else {
+        setLogsWorkspaceId(null);
+      }
+      setLogsTab(currentProjectId ? 'project' : 'workspace');
       setShowLogs(true);
     } catch (error) {
       console.error("Loglar çekilemedi", error);
@@ -803,12 +965,20 @@ export default function Board() {
                   {ws.inviteCode} 📋
                 </small>
               </div>
-              <div style={{ display: 'flex', gap: '5px', marginTop: '2px', alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: '5px', marginTop: '2px', alignItems: 'center', flexWrap: 'wrap' }}>
                 <button
-                  onClick={(e) => { e.stopPropagation(); handleShowWsMembers(ws); setCurrentWorkspaceId(ws.id); }}
+                  onClick={(e) => { e.stopPropagation(); handleShowWsMembers(ws); }}
+                  title="Üyeler ve alan ayarları"
                   style={{ fontSize: '10px', padding: '3px 6px', background: isDark ? '#334155' : '#e4f0f6', color: isDark ? '#93c5fd' : '#0079bf', border: 'none', borderRadius: '3px', cursor: 'pointer' }}
                 >
-                  👥 Üyeler ({ws.members?.length || 0})
+                  👥 Üyeler ({ws.members?.length || 0}){ws.myRole === 'ADMIN' ? ' · ⚙️' : ''}
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleOpenWorkspaceLogs(ws.id); }}
+                  title="Alanın son değişiklikleri"
+                  style={{ fontSize: '10px', padding: '3px 6px', background: isDark ? '#334155' : '#e4f0f6', color: isDark ? '#93c5fd' : '#0079bf', border: 'none', borderRadius: '3px', cursor: 'pointer' }}
+                >
+                  🕒 Geçmiş
                 </button>
                 <small style={{ fontSize: '10px', color: isDark ? '#94a3b8' : '#a5b1c2', alignSelf: 'center' }}>
                   {ws.myRole === 'ADMIN' ? '⭐ Admin' : '👤 Üye'}
@@ -916,7 +1086,7 @@ export default function Board() {
               </button>
             )}
             <h2>{currentProjectId ? 'Proje Görevleri' : 'Kanban Panosu'}</h2>
-            {currentProjectId && (
+            {(currentProjectId || currentWorkspaceId) && (
               <button 
                 onClick={handleShowLogs}
                 style={{ padding: '6px 12px', background: isDark ? '#334155' : '#e4f0f6', color: isDark ? '#93c5fd' : '#0079bf', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}
@@ -1315,25 +1485,71 @@ export default function Board() {
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ margin: 0, color: isDark ? '#f8fafc' : '#172b4d' }}>🕒 Son Değişiklikler</h3>
-              <button onClick={() => setShowLogs(false)} style={{ background: 'transparent', border: 'none', fontSize: '18px', cursor: 'pointer', color: isDark ? '#94a3b8' : '#5e6c84' }}>✖</button>
+              <button onClick={() => { setShowLogs(false); setLogsWorkspaceId(null); }} style={{ background: 'transparent', border: 'none', fontSize: '18px', cursor: 'pointer', color: isDark ? '#94a3b8' : '#5e6c84' }}>✖</button>
             </div>
-            
-            <div style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px', paddingRight: '5px' }}>
-              {logs.length === 0 ? (
-                <p style={{ color: isDark ? '#94a3b8' : '#5e6c84', textAlign: 'center' }}>Henüz bir hareket kaydedilmemiş.</p>
-              ) : (
-                logs.map(log => (
-                  <div key={log.id} style={{ padding: '12px', background: isDark ? '#0f172a' : '#fff', border: isDark ? '1px solid #334155' : 'none', borderRadius: '4px', boxShadow: isDark ? '0 1px 2px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.1)' }}>
-                    <p style={{ margin: '0 0 5px 0', fontSize: '14px', color: isDark ? '#f8fafc' : '#172b4d' }}>
-                      <strong>{log.user?.name || 'Bilinmeyen Kullanıcı'}</strong> {log.action}
-                    </p>
-                    <small style={{ color: isDark ? '#94a3b8' : '#888', fontSize: '11px' }}>
-                      {new Date(log.createdAt).toLocaleString('tr-TR')}
+
+            {(() => {
+              const showProjectTab = !!currentProjectId && (!logsWorkspaceId || logsWorkspaceId === currentWorkspaceId);
+              const showWsTab = !!logsWorkspaceId;
+              const activeTab = logsTab === 'workspace' && showWsTab ? 'workspace' : (showProjectTab ? 'project' : 'workspace');
+              const logsWsName = workspaces.find(w => w.id === logsWorkspaceId)?.name;
+              const tabStyle = (active) => ({
+                flex: 1, padding: '8px', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px',
+                background: active ? '#0052cc' : (isDark ? '#334155' : '#dfe6e9'),
+                color: active ? '#fff' : (isDark ? '#cbd5e1' : '#2d3436')
+              });
+              const list = activeTab === 'workspace' ? workspaceLogs : logs;
+
+              const getBadge = (action = '') => {
+                if (action.includes('şifresini')) return { text: '🔑 Şifre', bg: isDark ? '#422006' : '#fff0b3', color: isDark ? '#fde68a' : '#7a5a00' };
+                if (action.includes('alan adını')) return { text: '✏️ Alan Adı', bg: isDark ? '#1e3a8a' : '#deebff', color: isDark ? '#93c5fd' : '#0747a6' };
+                if (action.includes('admin')) return { text: '⭐ Yetki', bg: isDark ? '#78350f' : '#ffeaa7', color: isDark ? '#fde68a' : '#d35400' };
+                if (action.includes('ayrıldı') || action.includes('çıkardı')) return { text: '🚪 Üyelik', bg: isDark ? '#450a0a' : '#ffebe6', color: isDark ? '#fca5a5' : '#bf2600' };
+                if (action.includes('katıldı')) return { text: '👋 Üyelik', bg: isDark ? '#064e3b' : '#e3fcef', color: isDark ? '#6ee7b7' : '#006644' };
+                return null;
+              };
+
+              return (
+                <>
+                  {showProjectTab && showWsTab && (
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button onClick={() => setLogsTab('project')} style={tabStyle(activeTab === 'project')}>📋 Proje</button>
+                      <button onClick={() => setLogsTab('workspace')} style={tabStyle(activeTab === 'workspace')}>🏢 Alan</button>
+                    </div>
+                  )}
+                  {activeTab === 'workspace' && logsWsName && (
+                    <small style={{ color: isDark ? '#94a3b8' : '#5e6c84', marginTop: '-6px' }}>
+                      🏢 <strong>{logsWsName}</strong> alanına ait değişiklikler (anlık güncellenir)
                     </small>
+                  )}
+
+                  <div style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px', paddingRight: '5px' }}>
+                    {list.length === 0 ? (
+                      <p style={{ color: isDark ? '#94a3b8' : '#5e6c84', textAlign: 'center' }}>Henüz bir hareket kaydedilmemiş.</p>
+                    ) : (
+                      list.map(log => {
+                        const badge = activeTab === 'workspace' ? getBadge(log.action) : null;
+                        return (
+                          <div key={`${activeTab}-${log.id}`} style={{ padding: '12px', background: isDark ? '#0f172a' : '#fff', border: isDark ? '1px solid #334155' : 'none', borderRadius: '4px', boxShadow: isDark ? '0 1px 2px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.1)' }}>
+                            {badge && (
+                              <span style={{ display: 'inline-block', fontSize: '10px', fontWeight: 'bold', padding: '2px 6px', borderRadius: '3px', marginBottom: '6px', background: badge.bg, color: badge.color }}>
+                                {badge.text}
+                              </span>
+                            )}
+                            <p style={{ margin: '0 0 5px 0', fontSize: '14px', color: isDark ? '#f8fafc' : '#172b4d', wordBreak: 'break-word' }}>
+                              <strong>{log.user?.name || 'Bilinmeyen Kullanıcı'}</strong> {log.action}
+                            </p>
+                            <small style={{ color: isDark ? '#94a3b8' : '#888', fontSize: '11px' }}>
+                              {new Date(log.createdAt).toLocaleString('tr-TR')}
+                            </small>
+                          </div>
+                        );
+                      })
+                    )}
                   </div>
-                ))
-              )}
-            </div>
+                </>
+              );
+            })()}
           </div>
         </div>
       )}
@@ -1483,64 +1699,299 @@ export default function Board() {
         </div>
       )}
 
-      {/* WORKSPACE ÜYELERİ MODALI */}
+      {/* WORKSPACE ÜYELERİ VE AYARLARI MODALI */}
       {showWsMembersModal && (
         <div style={{
           position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
           backgroundColor: isDark ? 'rgba(0,0,0,0.75)' : 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
         }}>
           <div style={{
-            background: isDark ? '#1e293b' : '#f4f5f7', border: isDark ? '1px solid #334155' : 'none', padding: '24px', borderRadius: '8px', width: '90%', maxWidth: '500px', maxHeight: '70vh', display: 'flex', flexDirection: 'column', gap: '15px'
+            background: isDark ? '#1e293b' : '#f4f5f7', border: isDark ? '1px solid #334155' : 'none', padding: '24px', borderRadius: '8px', width: '92%', maxWidth: '520px', maxHeight: '85vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '14px'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                <h3 style={{ margin: 0, color: isDark ? '#f8fafc' : '#172b4d' }}>👥 Çalışma Alanı Üyeleri</h3>
-                {wsCurrentInviteCode && (
-                  <span 
-                    onClick={() => { navigator.clipboard.writeText(wsCurrentInviteCode); showToast("Davet kodu kopyalandı!", "success"); }}
-                    title="Kopyalamak için tıklayın"
-                    style={{ 
-                      fontSize: '12px', background: isDark ? '#2e1065' : '#e8e6fb', color: isDark ? '#c4b5fd' : '#6c5ce7', 
-                      padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontFamily: 'monospace' 
-                    }}
-                  >
-                    Kod: {wsCurrentInviteCode} 📋
-                  </span>
-                )}
+            {/* Başlık ve Davet Kodu */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <h3 style={{ margin: 0, color: isDark ? '#f8fafc' : '#172b4d', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <span>👥 {wsModal?.name || 'Çalışma Alanı'}</span>
+                  {wsModal?.inviteCode && (
+                    <span 
+                      onClick={() => { navigator.clipboard.writeText(wsModal.inviteCode); showToast("Davet kodu kopyalandı!", "success"); }}
+                      title="Kopyalamak için tıklayın"
+                      style={{ 
+                        fontSize: '11px', background: isDark ? '#2e1065' : '#e8e6fb', color: isDark ? '#c4b5fd' : '#6c5ce7', 
+                        padding: '3px 7px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontFamily: 'monospace' 
+                      }}
+                    >
+                      Kod: {wsModal.inviteCode} 📋
+                    </span>
+                  )}
+                </h3>
+                <small style={{ color: isDark ? '#94a3b8' : '#5e6c84', fontSize: '11.5px' }}>
+                  Rolünüz: <strong>{wsModalIsAdmin ? '⭐ Alan Yöneticisi (Admin)' : '👤 Üye'}</strong> · Toplam {wsModalMembers.length} üye ({wsModalAdminCount} admin)
+                </small>
               </div>
-              <button onClick={() => setShowWsMembersModal(false)} style={{ background: 'transparent', border: 'none', fontSize: '18px', cursor: 'pointer', color: isDark ? '#94a3b8' : '#5e6c84' }}>✖</button>
+              <button 
+                onClick={() => { setShowWsMembersModal(false); setWsModalId(null); setWsLeaveWarning(''); }} 
+                style={{ background: 'transparent', border: 'none', fontSize: '18px', cursor: 'pointer', color: isDark ? '#94a3b8' : '#5e6c84' }}
+              >
+                ✖
+              </button>
             </div>
 
-            <div style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {wsMembersList.length === 0 ? (
-                <p style={{ color: isDark ? '#94a3b8' : '#5e6c84', textAlign: 'center' }}>Üye bulunamadı.</p>
-              ) : (
-                wsMembersList.map(m => (
-                  <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px', background: isDark ? '#0f172a' : '#fff', border: isDark ? '1px solid #334155' : 'none', borderRadius: '4px', boxShadow: isDark ? '0 1px 2px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.1)' }}>
-                    <div>
-                      <strong style={{ color: isDark ? '#f8fafc' : '#172b4d' }}>{m.user?.name}</strong>
-                      <small style={{ display: 'block', color: isDark ? '#94a3b8' : '#888', fontSize: '11px' }}>{m.user?.email}</small>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <span style={{ 
-                        fontSize: '11px', padding: '3px 8px', borderRadius: '3px', fontWeight: 'bold',
-                        background: m.role === 'ADMIN' ? (isDark ? '#78350f' : '#ffeaa7') : (isDark ? '#334155' : '#dfe6e9'),
-                        color: m.role === 'ADMIN' ? (isDark ? '#fde68a' : '#d35400') : (isDark ? '#cbd5e1' : '#636e72')
-                      }}>
-                        {m.role === 'ADMIN' ? '⭐ Admin' : '👤 Üye'}
-                      </span>
-                      {wsMyRole === 'ADMIN' && m.role !== 'ADMIN' && (
-                        <button 
-                          onClick={() => handleKickMember(m.user?.id)}
-                          style={{ padding: '4px 8px', background: '#ff5630', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}
-                        >
-                          Çıkar
-                        </button>
-                      )}
-                    </div>
+            {/* Uyarı Kutusu (Örn: Tek admin ayrılmaya çalıştığında) */}
+            {wsLeaveWarning && (
+              <div style={{
+                backgroundColor: isDark ? '#450a0a' : '#ffebe6',
+                color: isDark ? '#fca5a5' : '#bf2600',
+                border: isDark ? '1px solid #7f1d1d' : '1px solid #ffbdad',
+                padding: '10px 12px',
+                borderRadius: '6px',
+                fontSize: '12.5px',
+                fontWeight: '500',
+                lineHeight: '1.4'
+              }}>
+                ⚠️ {wsLeaveWarning}
+              </div>
+            )}
+
+            {/* Üyeler Listesi */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <span style={{ fontSize: '12.5px', fontWeight: 'bold', color: isDark ? '#cbd5e1' : '#475569' }}>
+                👥 Alan Üyeleri ({wsModalMembers.length})
+              </span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '200px', overflowY: 'auto', paddingRight: '2px' }}>
+                {wsModalMembers.length === 0 ? (
+                  <p style={{ color: isDark ? '#94a3b8' : '#5e6c84', textAlign: 'center', margin: '8px 0' }}>Üye bulunamadı.</p>
+                ) : (
+                  wsModalMembers.map(m => {
+                    const isSelf = m.user?.id === user?.id;
+                    const isMemberAdmin = m.role === 'ADMIN';
+
+                    return (
+                      <div 
+                        key={m.id || m.user?.id} 
+                        style={{ 
+                          display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
+                          padding: '9px 12px', background: isDark ? '#0f172a' : '#fff', 
+                          border: isDark ? '1px solid #334155' : '1px solid #e2e8f0', 
+                          borderRadius: '6px', gap: '10px', flexWrap: 'wrap'
+                        }}
+                      >
+                        <div style={{ minWidth: '140px', flex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <strong style={{ color: isDark ? '#f8fafc' : '#172b4d', fontSize: '13px' }}>
+                              {m.user?.name}
+                            </strong>
+                            {isSelf && (
+                              <span style={{ fontSize: '10px', background: isDark ? '#334155' : '#e2e8f0', color: isDark ? '#cbd5e1' : '#475569', padding: '1px 5px', borderRadius: '3px', fontWeight: 'bold' }}>
+                                Siz
+                              </span>
+                            )}
+                          </div>
+                          <small style={{ display: 'block', color: isDark ? '#94a3b8' : '#64748b', fontSize: '11px' }}>
+                            {m.user?.email}
+                          </small>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                          <span style={{ 
+                            fontSize: '11px', padding: '3px 8px', borderRadius: '4px', fontWeight: 'bold',
+                            background: isMemberAdmin ? (isDark ? '#78350f' : '#ffeaa7') : (isDark ? '#334155' : '#dfe6e9'),
+                            color: isMemberAdmin ? (isDark ? '#fde68a' : '#d35400') : (isDark ? '#cbd5e1' : '#475569')
+                          }}>
+                            {isMemberAdmin ? '⭐ Admin' : '👤 Üye'}
+                          </span>
+
+                          {/* Yetki Değiştirme ve Çıkarma Butonları (Sadece Admin yetkisi olanlar yönetebilir) */}
+                          {wsModalIsAdmin && (
+                            <>
+                              {!isMemberAdmin ? (
+                                <button
+                                  onClick={() => handleChangeMemberRole(m.user?.id, 'ADMIN')}
+                                  title="Bu üyeye admin yetkisi ver"
+                                  style={{ 
+                                    padding: '4px 8px', background: isDark ? '#1e3a8a' : '#e0e7ff', 
+                                    color: isDark ? '#93c5fd' : '#3730a3', border: 'none', 
+                                    borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' 
+                                  }}
+                                >
+                                  ⭐ Admin Yap
+                                </button>
+                              ) : (
+                                (!isSelf || wsModalAdminCount > 1) && (
+                                  <button
+                                    onClick={() => handleChangeMemberRole(m.user?.id, 'MEMBER')}
+                                    title={isSelf ? "Kendi adminlik yetkinizi bırakın" : "Admin yetkisini geri al"}
+                                    style={{ 
+                                      padding: '4px 8px', background: isDark ? '#422006' : '#fef3c7', 
+                                      color: isDark ? '#fde68a' : '#92400e', border: 'none', 
+                                      borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' 
+                                    }}
+                                  >
+                                    {isSelf ? "Adminliği Bırak" : "Adminliği Al"}
+                                  </button>
+                                )
+                              )}
+
+                              {!isSelf && (
+                                <button 
+                                  onClick={() => handleKickMember(m.user?.id)}
+                                  title="Üyeyi alandan çıkar"
+                                  style={{ 
+                                    padding: '4px 8px', background: '#ef4444', color: 'white', 
+                                    border: 'none', borderRadius: '4px', cursor: 'pointer', 
+                                    fontSize: '11px', fontWeight: 'bold' 
+                                  }}
+                                >
+                                  Çıkar
+                                </button>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+
+            {/* Alan Ayarları (Admin ise İsim ve Şifre değiştirme) */}
+            {wsModalIsAdmin ? (
+              <div style={{
+                background: isDark ? '#0f172a' : '#fff',
+                border: isDark ? '1px solid #334155' : '1px solid #e2e8f0',
+                borderRadius: '6px',
+                padding: '12px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px'
+              }}>
+                <span style={{ fontSize: '12.5px', fontWeight: 'bold', color: isDark ? '#cbd5e1' : '#475569', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  ⚙️ Alan Ayarları (Yalnızca Adminler)
+                </span>
+
+                {/* Alan Adı Değiştirme */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '11.5px', color: isDark ? '#94a3b8' : '#64748b', marginBottom: '4px' }}>
+                    ✏️ Çalışma Alanı Adı
+                  </label>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input 
+                      type="text"
+                      value={wsRenameInput}
+                      onChange={(e) => setWsRenameInput(e.target.value)}
+                      placeholder="Yeni alan adı"
+                      style={{ 
+                        flex: 1, padding: '8px 10px', borderRadius: '4px', 
+                        border: isDark ? '1px solid #334155' : '1px solid #ccc', 
+                        background: isDark ? '#1e293b' : '#fff', 
+                        color: isDark ? '#f8fafc' : '#000', fontSize: '13px' 
+                      }}
+                    />
+                    <button 
+                      onClick={handleRenameWorkspace}
+                      style={{ 
+                        padding: '8px 12px', background: '#0052cc', color: 'white', 
+                        border: 'none', borderRadius: '4px', cursor: 'pointer', 
+                        fontWeight: 'bold', fontSize: '12px', whiteSpace: 'nowrap' 
+                      }}
+                    >
+                      Adı Güncelle
+                    </button>
                   </div>
-                ))
-              )}
+                </div>
+
+                {/* Alan Şifresi Değiştirme */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '11.5px', color: isDark ? '#94a3b8' : '#64748b', marginBottom: '4px' }}>
+                    🔑 Alan Katılım Şifresi (En az 4 karakter)
+                  </label>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      <input 
+                        type="password"
+                        value={wsNewPassword}
+                        onChange={(e) => setWsNewPassword(e.target.value)}
+                        placeholder="Yeni alan şifresi"
+                        autoComplete="new-password"
+                        style={{ 
+                          flex: 1, minWidth: '130px', padding: '8px 10px', borderRadius: '4px', 
+                          border: isDark ? '1px solid #334155' : '1px solid #ccc', 
+                          background: isDark ? '#1e293b' : '#fff', 
+                          color: isDark ? '#f8fafc' : '#000', fontSize: '13px' 
+                        }}
+                      />
+                      <input 
+                        type="password"
+                        value={wsNewPasswordConfirm}
+                        onChange={(e) => setWsNewPasswordConfirm(e.target.value)}
+                        placeholder="Yeni şifre (tekrar)"
+                        autoComplete="new-password"
+                        style={{ 
+                          flex: 1, minWidth: '130px', padding: '8px 10px', borderRadius: '4px', 
+                          border: isDark ? '1px solid #334155' : '1px solid #ccc', 
+                          background: isDark ? '#1e293b' : '#fff', 
+                          color: isDark ? '#f8fafc' : '#000', fontSize: '13px' 
+                        }}
+                      />
+                    </div>
+                    <button 
+                      onClick={handleChangeWorkspacePassword}
+                      style={{ 
+                        padding: '8px 12px', background: '#00b894', color: 'white', 
+                        border: 'none', borderRadius: '4px', cursor: 'pointer', 
+                        fontWeight: 'bold', fontSize: '12px', alignSelf: 'flex-start' 
+                      }}
+                    >
+                      Şifreyi Güncelle
+                    </button>
+                  </div>
+                  <small style={{ display: 'block', color: isDark ? '#94a3b8' : '#888', fontSize: '11px', marginTop: '4px' }}>
+                    ℹ️ Şifre değiştiğinde tüm üyelere "Son Değişiklikler" üzerinden bilgilendirme iletilir.
+                  </small>
+                </div>
+              </div>
+            ) : (
+              <div style={{ 
+                padding: '10px 12px', background: isDark ? '#0f172a' : '#fff', 
+                border: isDark ? '1px solid #334155' : '1px solid #e2e8f0', 
+                borderRadius: '6px', fontSize: '12px', color: isDark ? '#94a3b8' : '#64748b' 
+              }}>
+                ℹ️ Alan adı ve şifresi yalnızca alan adminleri tarafından değiştirilebilir.
+              </div>
+            )}
+
+            {/* Alandan Ayrılma Bölümü */}
+            <div style={{ 
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
+              borderTop: isDark ? '1px solid #334155' : '1px solid #e2e8f0', 
+              paddingTop: '12px', marginTop: '2px', flexWrap: 'wrap', gap: '8px' 
+            }}>
+              <div style={{ fontSize: '11.5px', color: isDark ? '#94a3b8' : '#64748b', flex: 1, minWidth: '180px' }}>
+                {wsModalIsAdmin && wsModalAdminCount <= 1 && wsModalMembers.length > 1 ? (
+                  <span style={{ color: isDark ? '#fca5a5' : '#dc2626', fontWeight: '500' }}>
+                    ⚠️ Tek adminsiniz. Ayrılmadan önce yeni admin atamalısınız.
+                  </span>
+                ) : wsModalMembers.length <= 1 ? (
+                  <span style={{ color: isDark ? '#fca5a5' : '#dc2626', fontWeight: '500' }}>
+                    ⚠️ Son üyesiniz. Ayrılırsanız bu alan silinir.
+                  </span>
+                ) : (
+                  <span>İstediğiniz zaman bu alandan ayrılabilirsiniz.</span>
+                )}
+              </div>
+
+              <button 
+                onClick={handleLeaveWorkspace}
+                style={{ 
+                  padding: '8px 14px', background: '#dc2626', color: 'white', 
+                  border: 'none', borderRadius: '4px', cursor: 'pointer', 
+                  fontWeight: 'bold', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '6px' 
+                }}
+              >
+                🚪 Alandan Ayrıl
+              </button>
             </div>
           </div>
         </div>

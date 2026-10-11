@@ -85,6 +85,13 @@ const deleteProject = async (req, res) => {
 
         // Eğer çalışma alanına ait bir projeyse, o alanı da anlık güncelle
         if (project.workspaceId) {
+            try {
+                await prisma.workspaceLog.create({
+                    data: { workspaceId: project.workspaceId, userId, action: `"${project.name}" projesini sildi.` }
+                });
+            } catch (logError) {
+                console.error('Alan logu yazılamadı:', logError);
+            }
             const io = req.app.get('io');
             if (io) io.to(`workspace_${project.workspaceId}`).emit('workspace_updated');
         }
